@@ -7,10 +7,10 @@ cd ~/Documents/CurrResearch/Devt/Computation
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
-TT = 100;
+TT = 400;
 save_plots =0;
 
-cbar	= -0.6; % note this is the inverse because I changed the util function
+cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
 abar	= 0.09; % this gets changed below in the calibration
 Aa	= 1.0;
 beta	= 0.99;
@@ -22,7 +22,7 @@ theta	= 0.72;
 Amf	= 0.25;
 mu	= 0.99;
 alpha	= 0.992;
-be	= 0.3;
+be	= 0.1;
 tau	= 0.0;
 
 
@@ -38,7 +38,7 @@ tau	= 0.0;
 % qrt = @(Q) Q.^-eta;
 % prt = @(Q) Q.(1-eta);
 
-%% solve for the steady state with the original parameters
+%% solve for the steady state with the original parameters (just to see that it actually works)
 
 sol_wcPa_ss([.5,.4])
 %pos_solwcPa = @(logwcPa) sol_wcPa_ss(exp(logwcPa));
@@ -85,13 +85,13 @@ Amf_devd = Amf;
 Ym_devd  = Ym;
 
 %%
-% now calibrate it so that I get 90% in agriculture and 10% unemployment by
-% manipulating Aa and Amf.  I will fix abar.
+% now calibrate it so that I get Na_target in agriculture and u_target unemployment by
+% manipulating Aa and Ym.  I will fix abar.
 
 
 % to change the calibration target values change Na_target, u_target
-Na_target = 0.90;
-u_target  = 0.10;
+Na_target = 0.75;
+u_target  = 0.07;
 cal_undevd9010 = @(AaYm) cal_undevd_AaYm(AaYm,Na_target,u_target);
 [x,fval_cal,exitflag_cal,out] = fminsearch(cal_undevd9010,log([.1,Ym]));
 
@@ -144,6 +144,8 @@ trans_path(:,2) = -1.0;
 
 price_path(TT,:)= p0_trans(1,:);
 
+logssp = devd_logssp;
+
 for trans_iter =1:10
 
 for t = TT-1:-1:1
@@ -154,11 +156,12 @@ for t = TT-1:-1:1
 	for itertau = 1:100
 		tau = 0.5*tauH+0.5*tauL;
 		%p0 = [tan(p0_trans(t,1)*pi/Ym-pi/2) log(p0_trans(t,2))];
-		if(t>TT/2)
-			p0 = devd_logssp;
-		else
-			p0 = undevd_logssp;
-		end
+		%if(t>TT/2)
+		%	p0 = devd_logssp;
+		%else
+		%	p0 = undevd_logssp;
+		%end
+		p0 = logssp;
 		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
 		wcPa_t = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
@@ -188,11 +191,12 @@ for t = 2:TT-1
 	for itertau = 1:100
 		tau = 0.5*tauH+0.5*tauL;
 		%p0 = [tan(p0_trans(t,1)*pi/Ym-pi/2) log(p0_trans(t,2))];
-		if(t>TT/2)
-			p0 = devd_logssp;
-		else
-			p0 = undevd_logssp;
-		end
+% 		if(t>TT/2)
+% 			p0 = devd_logssp;
+% 		else
+% 			p0 = undevd_logssp;
+% 		end
+		p0 = [tan(price_path_back(t,1)*pi/Ym-pi/2) log(price_path_back(t,2))]; 
 		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
 		wcPa_t = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
@@ -208,15 +212,50 @@ for t = 2:TT-1
 	end
 	trans_path(t,:) = trans_economy;
 	excess_path(t,:)= excess_trans;
-	price_path(t,:) = wcPa_t;
+	price_path(t,:) = wcPa_t; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
 end
 trans_path(TT,:) = devd_economy;
 price_dif = abs(price_path - price_path_back);
 if(max(max(price_dif))<1e-6)
 	break;
+else % this is a heuristic in case it's not converging
+	disp('Max deviation:')
+	max(max(price_dif))
+	for fixiter=1:10
+		papprox_coef = quantreg([1:TT]',price_path(:,2),.5,5,100);
+		%plot([1:TT],price_path(:,2),[1:TT],polyval(papprox_coef,[1:TT]'));
+
+		pbad = zeros(TT,1)==1;
+		% replace values that deviate from the 5th-order fit and have discontinuous
+		% derivatives
+		papprox = polyval(papprox_coef,time);
+		for t=2:TT-1
+			if(abs(papprox(t)-price_path(t,2))/(1+papprox(t))>.05 && abs(price_path(t+1,2)-2*price_path(t,2)+price_path(t-1,2))>.05 ) 
+				pbad(t)=1;
+			end
+			if(trans_path(t,1)<.01)
+				pbad(t)=1;
+			end
+		end
+		pgood = pbad==0;
+		if(sum(pbad)>0)
+			price_path(pbad,2) = interp1(time(pgood),price_path(pgood,2),time(pbad));
+		else
+			break;
+		end
+	end
 end
 
 end
+
+%% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
+
+rev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
+percaprev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
+rev_p0 = [price_path(1,2).*Aa*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
+percaprev_p0 = [price_path(1,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
+rev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
+percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
 
 
 %%
@@ -246,5 +285,30 @@ figure(4);
 [ax,h1,h2]=plotyy([1:TT],Amf*trans_path(:,3).^(1-eta),[1:TT],Ym_path);title('Job finding rate');
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','Y_m');
 if (save_plots == 1) saveas(gca,'pQtrans','eps2c'); end
+	
+figure(5);
+[ax,h1,h2]=plotyy([1:TT],percaprev_pt(:,1)./percaprev_pt(:,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t');
+set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','NorthEast','P_t y_a/y_m','P_t y_a');
+y20 = min(percaprev_pt(:,1));y2Y=max(percaprev_pt(:,1));
+y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
+set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
+if (save_plots == 1) saveas(gca,'rev_Pt_trans','eps2c'); end
+
+figure(6);
+h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0');
+set(h,'LineWidth',2);legend('Location','North','P_0 y_a/y_m','P_0 y_a');
+if (save_plots == 1) saveas(gca,'rev_P0_trans','eps2c'); end
+
+
+figure(7);
+h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1));title('Relative Revenue Per Capita, P_T');
+set(h,'LineWidth',2);legend('Location','North','P_T y_a/y_m','P_T y_a');
+if (save_plots == 1) saveas(gca,'rev_PTT_trans','eps2c'); end
+
+figure(8);
+[ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good');
+set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
+if (save_plots == 1) saveas(gca,'agPrice','eps2c'); end
+
 
 cd ~/Documents/CurrResearch/Devt/Computation
