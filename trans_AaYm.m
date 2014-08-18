@@ -19,7 +19,7 @@ Ym	= 1.12;
 lambda	= 0.03;
 kappa	= 0.19;
 theta	= 0.72;
-Amf	= 0.25;
+Amf	= 0.5;
 mu	= 0.99;
 alpha	= 0.992;
 be	= 0.1;
@@ -66,34 +66,23 @@ end
 	
 %% calibrate it
 
-% first calibrate abar and Amf so that matches 5% in ag and 5%
-% unemployment by changing abar and Amf
+% initial guesses:
+Aa_undevd = .5;
+Ym_undevd = 1.;
+Aa_devd   = 5;
+Ym_devd   = 1.;
 
-% to change the calibration target values change Na_target, u_target
-Na_target = 0.05;
-u_target  = 0.05;
-cal_devd55 = @(abarAmf) cal_devd(abarAmf,Na_target,u_target);
-[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd55,log([abar,Amf]));
+% for developing calibrate it to Na_target in agriculture, Pa_target as 
+% for the price of agriculture and u_target unemployment by manipulating Aa 
+% Ym and abar.
 
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
-devd_logssp = logssp;
-Aa_devd = Aa;
-Amf_devd = Amf;
-Ym_devd  = Ym;
-
-%%
-% now calibrate it so that I get Na_target in agriculture and u_target unemployment by
-% manipulating Aa and Ym.  I will fix abar.
-
-
-% to change the calibration target values change Na_target, u_target
+% to change the calibration target values change Na_target, u_target,
+% Pa_target
 Na_target = 0.75;
 u_target  = 0.07;
-cal_undevd9010 = @(AaYm) cal_undevd_AaYm(AaYm,Na_target,u_target);
-[x,fval_cal,exitflag_cal,out] = fminsearch(cal_undevd9010,log([.1,Ym]));
+Pa_target = 1.5;
+cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_target,u_target,Pa_target);
+[x,fval_cal,exitflag_cal,out] = fminsearch(cal_undevd_fn,log([abar,Aa_undevd,Ym_undevd]));
 
 
 pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -104,7 +93,30 @@ wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 undevd_logssp = logssp;
 Aa_undevd = Aa;
 Ym_undevd = Ym;
-Amf_undevd= Amf;
+
+
+%%
+
+% for developed calibrate abar and Amf so that matches Na_target in ag,
+% Pa_target as the price of agriculture and u_target unemployment by 
+% changing Aa, Ym and Amf
+
+% to change the calibration target values change Na_target, u_target
+Na_target = 0.05;
+u_target  = 0.075;
+Pa_target = 1.0;
+cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_target,u_target,Pa_target);
+[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd_fn,log([Aa_devd, Amf, Ym_devd]));
+
+pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
+devd_logssp = logssp;
+
+Aa_devd = Aa;
+Ym_devd  = Ym;
+
 
 %% transition backwards 
 %  First, transition using the approximation that unemployment is the steady state.  
