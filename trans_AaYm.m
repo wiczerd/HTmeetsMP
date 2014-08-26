@@ -72,50 +72,58 @@ Ym_undevd = 1.;
 Aa_devd   = 5;
 Ym_devd   = 1.;
 
-% for developing calibrate it to Na_target in agriculture, Pa_target as 
-% for the price of agriculture and u_target unemployment by manipulating Aa 
-% Ym and abar.
 
-% to change the calibration target values change Na_target, u_target,
-% Pa_target
-Na_target = 0.75;
-u_target  = 0.07;
-Pa_target = 1.5;
-cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_target,u_target,Pa_target);
-[x,fval_cal,exitflag_cal,out] = fminsearch(cal_undevd_fn,log([abar,Aa_undevd,Ym_undevd]));
+for cal_iter=1:4
+	
+	%% for developed calibrate abar and Amf so that matches Na_target in ag,
+	% Pa_target as the price of agriculture and u_target unemployment by 
+	% changing Aa, Ym and Amf
+
+	% to change the calibration target values change Na_target, u_target
+	Na_target = 0.05;
+	u_target  = 0.075;
+	Pa_target = 1.0;
+	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_target,u_target,Pa_target);
+	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Amf, Ym_devd]));
+
+	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
+	devd_logssp = logssp;
+
+	Aa_devd = Aa;
+	Ym_devd  = Ym;
+
+	%%
+
+	% for developing calibrate it to Na_target in agriculture, Pa_target as 
+	% for the price of agriculture and u_target unemployment by manipulating Aa 
+	% Ym and abar.
+
+	% to change the calibration target values change Na_target, u_target,
+	% Pa_target
+	Na_target = 0.75;
+	u_target  = 0.07;
+	Pa_target = 1.5;
+	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_target,u_target,Pa_target);
+	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([abar,Aa_undevd,Ym_undevd]));
 
 
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-[excess_undevd,undevd_economy] = sol_wcPa_ss(wcPa_ss);
+	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_undevd,undevd_economy] = sol_wcPa_ss(wcPa_ss);
 
-undevd_logssp = logssp;
-Aa_undevd = Aa;
-Ym_undevd = Ym;
+	undevd_logssp = logssp;
+	Aa_undevd = Aa;
+	Ym_undevd = Ym;
 
+	
+end
 
 %%
 
-% for developed calibrate abar and Amf so that matches Na_target in ag,
-% Pa_target as the price of agriculture and u_target unemployment by 
-% changing Aa, Ym and Amf
-
-% to change the calibration target values change Na_target, u_target
-Na_target = 0.05;
-u_target  = 0.075;
-Pa_target = 1.0;
-cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_target,u_target,Pa_target);
-[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd_fn,log([Aa_devd, Amf, Ym_devd]));
-
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
-devd_logssp = logssp;
-
-Aa_devd = Aa;
-Ym_devd  = Ym;
 
 
 %% transition backwards 
