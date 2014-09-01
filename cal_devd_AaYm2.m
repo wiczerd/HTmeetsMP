@@ -1,11 +1,11 @@
-function calresid = cal_devd(AaAmfYm,Natarget,utarget,Patarget)
+function calresid = cal_devd(AaAmfYm,Natarget,utarget)
 % the objective for a calibration to target Na, uss and solve for prices
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 Aa  = exp(AaAmfYm(1));
-Ym = exp(AaAmfYm(2));
-Amf = exp(AaAmfYm(3));
+abar = exp(AaAmfYm(2));
+%Ym = exp(AaAmfYm(3));
 options = optimset('Display','off');
 
 tau=0.0;
@@ -39,7 +39,7 @@ else
 
 	calresid_v(1)	= Natarget - theeconomy(1);
 	calresid_v(2)	= utarget - theeconomy(2)/(1-theeconomy(1));
-	calresid_v(3)	= Patarget - wcPa_ss(2);
+	%calresid_v(3)	= Patarget - wcPa_ss(2);
 	if(theeconomy(1)>=1) calresid_v(2) = 50; end%.05*(1/Amf); end
 end	
 

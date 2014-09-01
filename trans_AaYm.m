@@ -84,7 +84,9 @@ for cal_iter=1:4
 	u_target  = 0.075;
 	Pa_target = 1.0;
 	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_target,u_target,Pa_target);
-	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Amf, Ym_devd]));
+	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
+	%cal_devd_fn = @(AaAmf) cal_devd_AaYm2(AaAmf,Na_target,u_target);
+	%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, abar]));
 
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
@@ -107,8 +109,11 @@ for cal_iter=1:4
 	u_target  = 0.07;
 	Pa_target = 1.5;
 	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_target,u_target,Pa_target);
-	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([abar,Aa_undevd,Ym_undevd]));
-
+	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,Ym_undevd,abar]));
+	
+	%cal_undevd_fn = @(abarAa) cal_undevd_AaYm2(abarAa,Na_target,u_target);
+	%[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,Amf]));
+	
 
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);

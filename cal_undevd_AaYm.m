@@ -3,9 +3,9 @@ function calresid = cal_undevd_AaYm(abarAaYm,Natarget,utarget,Patarget)
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
-abar= exp(abarAaYm(1));
-Aa  = exp(abarAaYm(2));
-Ym = exp(abarAaYm(3));
+Aa  = exp(abarAaYm(1));
+Ym = exp(abarAaYm(2));
+abar= exp(abarAaYm(3));
 options = optimset('Display','off');
 
 tau=0.0;
