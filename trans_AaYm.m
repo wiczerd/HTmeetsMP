@@ -69,6 +69,7 @@ end
 % initial guesses:
 Aa_undevd = .5;
 Ym_undevd = 1.;
+be_undevd = be/4;
 Aa_devd   = 5;
 Ym_devd   = 1.;
 
@@ -83,6 +84,7 @@ for cal_iter=1:4
 	Na_target = 0.05;
 	u_target  = 0.075;
 	Pa_target = 1.0;
+	be = 0.4;
 	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_target,u_target,Pa_target);
 	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
 	%cal_devd_fn = @(AaAmf) cal_devd_AaYm2(AaAmf,Na_target,u_target);
@@ -94,6 +96,7 @@ for cal_iter=1:4
 	[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
 	devd_logssp = logssp;
 
+	be_devd = be;
 	Aa_devd = Aa;
 	Ym_devd  = Ym;
 
@@ -102,14 +105,18 @@ for cal_iter=1:4
 	% for developing calibrate it to Na_target in agriculture, Pa_target as 
 	% for the price of agriculture and u_target unemployment by manipulating Aa 
 	% Ym and abar.
+	Ym	= 1.0;
+	Ym_undevd = Ym;
 
+	abar_old = abar;
+	
 	% to change the calibration target values change Na_target, u_target,
 	% Pa_target
 	Na_target = 0.75;
 	u_target  = 0.07;
 	Pa_target = 1.5;
 	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_target,u_target,Pa_target);
-	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,Ym_undevd,abar]));
+	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,be_undevd,abar]));
 	
 	%cal_undevd_fn = @(abarAa) cal_undevd_AaYm2(abarAa,Na_target,u_target);
 	%[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,Amf]));
@@ -122,9 +129,12 @@ for cal_iter=1:4
 
 	undevd_logssp = logssp;
 	Aa_undevd = Aa;
-	Ym_undevd = Ym;
-
+	be_undevd = be;
 	
+	
+	if abs(abar -abar_old)<1e-3
+		break;
+	end
 end
 
 %%
