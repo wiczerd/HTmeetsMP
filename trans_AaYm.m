@@ -118,7 +118,7 @@ for cal_iter=1:4
 	
 	% to change the calibration target values change Na_target, u_target,
 	% Pa_target
-	Na_undevd_target = 0.75;
+	Na_undevd_target = 0.67;
 	u_undevd_target  = 0.07;
 	Pa_undevd_target = 1.5;
 	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
@@ -192,7 +192,7 @@ trans_path(1,:)= trans_economy;
 
 
 % use steady state unemployment first
-trans_path(:,2) = -1.0;
+trans_path(2:end,2) = -1.0;
 
 price_path(TT,:)= p0_trans(TT,:);
 
@@ -301,6 +301,14 @@ end
 
 end
 
+
+% check the calibration criteria at our calibration period.  
+	theeconomy	= trans_path(TT_leadin,:);
+	calresid(1)	= Na_undevd_target - theeconomy(1);
+	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
+	calresid(3)	= Pa_undevd_target - price_path(TT_leadin+1,2);
+
+	resid = calresid.^2;
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
 rev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
