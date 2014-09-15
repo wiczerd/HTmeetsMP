@@ -7,7 +7,9 @@ cd ~/Documents/CurrResearch/Devt/Computation
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
-TT = 400;
+TT_data = 400;
+TT_leadin = 100;
+TT = TT_data+TT_leadin;
 save_plots =0;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -81,11 +83,11 @@ for cal_iter=1:4
 	% changing Aa, Ym and Amf
 
 	% to change the calibration target values change Na_target, u_target
-	Na_target = 0.05;
-	u_target  = 0.075;
-	Pa_target = 1.0;
+	Na_devd_target = 0.05;
+	u_devd_target  = 0.075;
+	Pa_devd_target = 1.0;
 	be = 0.4;
-	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_target,u_target,Pa_target);
+	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
 	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
 	%cal_devd_fn = @(AaAmf) cal_devd_AaYm2(AaAmf,Na_target,u_target);
 	%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, abar]));
@@ -104,7 +106,11 @@ for cal_iter=1:4
 
 	% for developing calibrate it to Na_target in agriculture, Pa_target as 
 	% for the price of agriculture and u_target unemployment by manipulating Aa 
-	% Ym and abar.
+	% Ym and abar
+	
+	
+	% this is the initial guess, for below, when we calibrate to the
+	% transition
 	Ym	= 1.0;
 	Ym_undevd = Ym;
 
@@ -112,24 +118,21 @@ for cal_iter=1:4
 	
 	% to change the calibration target values change Na_target, u_target,
 	% Pa_target
-	Na_target = 0.75;
-	u_target  = 0.07;
-	Pa_target = 1.5;
-	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_target,u_target,Pa_target);
+	Na_undevd_target = 0.75;
+	u_undevd_target  = 0.07;
+	Pa_undevd_target = 1.5;
+	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
 	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,be_undevd,abar]));
 	
-	%cal_undevd_fn = @(abarAa) cal_undevd_AaYm2(abarAa,Na_target,u_target);
-	%[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,Amf]));
 	
-
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
 	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-	[excess_undevd,undevd_economy] = sol_wcPa_ss(wcPa_ss);
+	[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_ss);
 
-	undevd_logssp = logssp;
-	Aa_undevd = Aa;
-	be_undevd = be;
+	undevd_ss_logssp = logssp;
+	Aa_undevd_ss = Aa;
+	be_undevd_ss = be;
 	
 	
 	if abs(abar -abar_old)<1e-3
@@ -138,6 +141,20 @@ for cal_iter=1:4
 end
 
 %%
+
+% compute a low steady state 100 periods before the calibration period
+Na_ss0_target = (Na_devd_target-Na_undevd_target)/TT_data*(-TT_leadin)+Na_undevd_target;
+cal_ss0_fn = @(Aahere) cal_ss0_AaYm(Aahere,Na_ss0_target);
+[x,fval_cal3,exitflag_cal3,out3] = fminsearch(cal_ss0_fn,log(Aa_undevd));
+
+pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+[excess_undevd_ss0,undevd_ss0_economy] = sol_wcPa_ss(wcPa_ss);
+
+ss0_logssp = logssp;
+Aa_ss0 = Aa;
+Ym_ss0 = Ym;
 
 
 
@@ -153,31 +170,31 @@ Aa = Aa_devd;
 
 rt_chng_pwr	= 1;
 Aa_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Aa_path		= (1-Aa_path_chng)*Aa_undevd+Aa_path_chng*Aa_devd;
+Aa_path		= (1-Aa_path_chng)*Aa_ss0+Aa_path_chng*Aa_devd;
 
 rt_chng_pwr	= 5;
 Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Ym_path		= (1-Ym_path_chng)*Ym_undevd+Ym_path_chng*Ym_devd;
+Ym_path		= (1-Ym_path_chng)*Ym_ss0+Ym_path_chng*Ym_devd;
 
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
 price_path  = zeros(TT,2);
 
 
-p0_trans = [linspace(exp(devd_logssp(2)),exp(undevd_logssp(2)),100);...
-	   linspace((atan(devd_logssp(1))+pi/2)*Ym/pi,(atan(undevd_logssp(1))+pi/2)*Ym/pi,100)]';
+p0_trans = [linspace(exp(devd_logssp(2)),exp(ss0_logssp(2)),TT);...
+	   linspace((atan(devd_logssp(1))+pi/2)*Ym/pi,(atan(ss0_logssp(1))+pi/2)*Ym/pi,TT)]';
 
 trans_economy	= devd_economy;
 trans_path(TT,:)= trans_economy;
 
-trans_economy	= devd_economy;
-trans_path(TT,:)= trans_economy;
+trans_economy	= undevd_ss0_economy;
+trans_path(1,:)= trans_economy;
 
 
 % use steady state unemployment first
 trans_path(:,2) = -1.0;
 
-price_path(TT,:)= p0_trans(1,:);
+price_path(TT,:)= p0_trans(TT,:);
 
 logssp = devd_logssp;
 
@@ -186,6 +203,7 @@ for trans_iter =1:10
 for t = TT-1:-1:1
 	Aa = Aa_path(t);
 	Ym = Ym_path(t);
+	be = (be_devd-be_undevd)*Ym/(Ym_devd - Ym_undevd) + be_undevd;
 	pos_solwcPa = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t,2));
 	tauH = 0.05; tauL=0.001;
 	for itertau = 1:100
