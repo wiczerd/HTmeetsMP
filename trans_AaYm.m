@@ -269,38 +269,46 @@ for t = 2:TT-1
 end
 trans_path(TT,:) = devd_economy;
 price_dif = abs(price_path - price_path_back);
-if(max(max(price_dif))<1e-6)
-	break;
-else % this is a heuristic in case it's not converging
-	disp('Max deviation:')
-	max(max(price_dif))
-	for fixiter=1:10
-		papprox_coef = quantreg([1:TT]',price_path(:,2),.5,5,100);
-		%plot([1:TT],price_path(:,2),[1:TT],polyval(papprox_coef,[1:TT]'));
+% if(max(max(price_dif))<1e-6)
+% 	break;
+% else % this is a heuristic in case it's not converging
+% 	disp('Max deviation:')
+% 	max(max(price_dif))
+% 	for fixiter=1:10
+% 		papprox_coef = quantreg([1:TT]',price_path(:,2),.5,5,100);
+% 		%plot([1:TT],price_path(:,2),[1:TT],polyval(papprox_coef,[1:TT]'));
+% 
+% 		pbad = zeros(TT,1)==1;
+% 		% replace values that deviate from the 5th-order fit and have discontinuous
+% 		% derivatives
+% 		papprox = polyval(papprox_coef,time);
+% 		for t=2:TT-1
+% 			if(abs(papprox(t)-price_path(t,2))/(1+papprox(t))>.05 && abs(price_path(t+1,2)-2*price_path(t,2)+price_path(t-1,2))>.05 ) 
+% 				pbad(t)=1;
+% 			end
+% 			if(trans_path(t,1)<.01)
+% 				pbad(t)=1;
+% 			end
+% 		end
+% 		pgood = pbad==0;
+% 		if(sum(pbad)>0)
+% 			price_path(pbad,2) = interp1(time(pgood),price_path(pgood,2),time(pbad));
+% 		else
+% 			break;
+% 		end
+% 	end
+% end
 
-		pbad = zeros(TT,1)==1;
-		% replace values that deviate from the 5th-order fit and have discontinuous
-		% derivatives
-		papprox = polyval(papprox_coef,time);
-		for t=2:TT-1
-			if(abs(papprox(t)-price_path(t,2))/(1+papprox(t))>.05 && abs(price_path(t+1,2)-2*price_path(t,2)+price_path(t-1,2))>.05 ) 
-				pbad(t)=1;
-			end
-			if(trans_path(t,1)<.01)
-				pbad(t)=1;
-			end
-		end
-		pgood = pbad==0;
-		if(sum(pbad)>0)
-			price_path(pbad,2) = interp1(time(pgood),price_path(pgood,2),time(pbad));
-		else
-			break;
-		end
-	end
 end
 
-end
 
+% check the calibration criteria at our calibration period.  
+	theeconomy	= trans_path(TT_leadin,:);
+	calresid(1)	= Na_undevd_target - theeconomy(1);
+	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
+	calresid(3)	= Pa_undevd_target - price_path(TT_leadin+1,2);
+
+	resid = calresid.^2;
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
 rev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
