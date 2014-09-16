@@ -7,13 +7,12 @@ cd ~/Documents/CurrResearch/Devt/Computation
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
-TT_data = 400;
-TT_leadin = 100;
-TT = TT_data+TT_leadin;
+TT_data = 150*4;
+TT	= TT_data;
 save_plots =0;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
-abar	= 0.09; % this gets changed below in the calibration
+abar	= 0.2; % this gets changed below in the calibration
 Aa	= 1.0;
 beta	= 0.99;
 eta	= 0.72;
@@ -76,16 +75,16 @@ Aa_devd   = 5;
 Ym_devd   = 1.;
 
 
-for cal_iter=1:4
+for cal_iter=1:10
 	
 	%% for developed calibrate abar and Amf so that matches Na_target in ag,
 	% Pa_target as the price of agriculture and u_target unemployment by 
 	% changing Aa, Ym and Amf
 
 	% to change the calibration target values change Na_target, u_target
-	Na_devd_target = 0.05;
-	u_devd_target  = 0.075;
-	Pa_devd_target = 1.0;
+	Na_devd_target = 0.1;
+	u_devd_target  = 0.07;
+	Pa_devd_target = 0.8;
 	be = 0.4;
 	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
 	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
@@ -140,22 +139,13 @@ for cal_iter=1:4
 	end
 end
 
-%%
+%As a first guess, set undevd economy to be the undevd_ss_economy, even
+%though it will not be a steady state when we compute the transition
 
-% compute a low steady state 100 periods before the calibration period
-Na_ss0_target = (Na_devd_target-Na_undevd_target)/TT_data*(-TT_leadin)+Na_undevd_target;
-cal_ss0_fn = @(Aahere) cal_ss0_AaYm(Aahere,Na_ss0_target);
-[x,fval_cal3,exitflag_cal3,out3] = fminsearch(cal_ss0_fn,log(Aa_undevd));
-
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-[excess_undevd_ss0,undevd_ss0_economy] = sol_wcPa_ss(wcPa_ss);
-
-ss0_logssp = logssp;
-Aa_ss0 = Aa;
-Ym_ss0 = Ym;
-
+undevd_economy = undevd_ss_economy;
+undevd_logssp = undevd_ss_logssp;
+p0_trans = [linspace(exp(devd_logssp(2)),exp(undevd_logssp (2)),TT);...
+	   linspace((atan(devd_logssp(1))+pi/2)*Ym/pi,(atan(undevd_logssp(1))+pi/2)*Ym/pi,TT)]';
 
 
 %% transition backwards 
@@ -172,7 +162,7 @@ rt_chng_pwr	= 1;
 Aa_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
 Aa_path		= (1-Aa_path_chng)*Aa_ss0+Aa_path_chng*Aa_devd;
 
-rt_chng_pwr	= 5;
+rt_chng_pwr	= 1;
 Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
 Ym_path		= (1-Ym_path_chng)*Ym_ss0+Ym_path_chng*Ym_devd;
 
@@ -181,13 +171,10 @@ excess_path = zeros(TT,2);
 price_path  = zeros(TT,2);
 
 
-p0_trans = [linspace(exp(devd_logssp(2)),exp(ss0_logssp(2)),TT);...
-	   linspace((atan(devd_logssp(1))+pi/2)*Ym/pi,(atan(ss0_logssp(1))+pi/2)*Ym/pi,TT)]';
-
 trans_economy	= devd_economy;
 trans_path(TT,:)= trans_economy;
 
-trans_economy	= undevd_ss0_economy;
+trans_economy	= undevd_economy;
 trans_path(1,:)= trans_economy;
 
 
@@ -303,12 +290,17 @@ end
 
 
 % check the calibration criteria at our calibration period.  
-	theeconomy	= trans_path(TT_leadin,:);
+	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
 	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
-	calresid(3)	= Pa_undevd_target - price_path(TT_leadin+1,2);
+	calresid(3)	= Pa_undevd_target - price_path(1,2);
 
 	resid = calresid.^2;
+	
+% adjust the path of ag TFP growth if price path is off:
+abs(price_path(:,2) - p0_trans(:,2));
+
+
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
 rev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
