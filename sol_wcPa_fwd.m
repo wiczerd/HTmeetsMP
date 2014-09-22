@@ -1,5 +1,7 @@
 function [excess,theeconomy] = sol_wcPa(wcPa,theeconomy_tp1,uNa_tm1)
-% computes a steady state in the economy
+% computes a point in the economy assuming that the quantities are known in
+% the t+1 period 
+
 % if only one output is requested, it gives excess (as in excess demand)
 % if more are requested it outputs:
 % theeconomy{1} : N_a

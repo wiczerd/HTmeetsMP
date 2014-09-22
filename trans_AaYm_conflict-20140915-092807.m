@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
-TT	= 15;%TT_data;
+TT	= TT_data;
 save_plots =0;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -86,13 +86,11 @@ for cal_iter=1:10
 	u_devd_target  = 0.07;
 	Pa_devd_target = 0.8;
 	be = 0.4;
-	%cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
-	%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
+	cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
+	[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
+	%cal_devd_fn = @(AaAmf) cal_devd_AaYm2(AaAmf,Na_target,u_target);
+	%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, abar]));
 
-	cal_devd_fn = @(AaAmfYm) calls_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
-	[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Aa_devd, Ym_devd, Amf],[0,0,0],[10,10,10]);
-
-	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
 	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
@@ -119,13 +117,11 @@ for cal_iter=1:10
 	
 	% to change the calibration target values change Na_target, u_target,
 	% Pa_target
-	Na_undevd_target = 0.67;
+	Na_undevd_target = 0.75;
 	u_undevd_target  = 0.07;
 	Pa_undevd_target = 1.5;
-	%cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	%[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,be_undevd,abar]));
-	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,([Aa_undevd,be_undevd,abar]),[0,0,0],[10,Ym,Ym]);
+	cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
+	[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,be_undevd,abar]));
 	
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -164,11 +160,11 @@ Aa = Aa_devd;
 
 rt_chng_pwr	= 1;
 Aa_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Aa_path		= (1-Aa_path_chng)*Aa_undevd_ss+Aa_path_chng*Aa_devd;
+Aa_path		= (1-Aa_path_chng)*Aa_ss0+Aa_path_chng*Aa_devd;
 
 rt_chng_pwr	= 1;
 Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Ym_path		= (1-Ym_path_chng)*Ym_undevd+Ym_path_chng*Ym_devd;
+Ym_path		= (1-Ym_path_chng)*Ym_ss0+Ym_path_chng*Ym_devd;
 
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
@@ -183,7 +179,7 @@ trans_path(1,:)= trans_economy;
 
 
 % use steady state unemployment first
-trans_path(2:end,2) = -1.0;
+trans_path(:,2) = -1.0;
 
 price_path(TT,:)= p0_trans(TT,:);
 
@@ -227,14 +223,19 @@ end
 price_path_back = price_path;
 
 % now go forward to get quantities right
-for t = 1:TT-1
+for t = 2:TT-1
 	Aa = Aa_path(t);
 	Ym = Ym_path(t);
 	pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t-1,1:2));
 	tauH = 0.05; tauL=0.001;
 	for itertau = 1:100
 		tau = 0.5*tauH+0.5*tauL;
-
+		%p0 = [tan(p0_trans(t,1)*pi/Ym-pi/2) log(p0_trans(t,2))];
+% 		if(t>TT/2)
+% 			p0 = devd_logssp;
+% 		else
+% 			p0 = undevd_logssp;
+% 		end
 		p0 = [tan(price_path_back(t,1)*pi/Ym-pi/2) log(price_path_back(t,2))]; 
 		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
 		wcPa_t = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
@@ -285,6 +286,8 @@ price_dif = abs(price_path - price_path_back);
 % 	end
 % end
 
+end
+
 
 % check the calibration criteria at our calibration period.  
 	theeconomy	= trans_path(1,:);
@@ -296,10 +299,6 @@ price_dif = abs(price_path - price_path_back);
 	
 % adjust the path of ag TFP growth if price path is off:
 abs(price_path(:,2) - p0_trans(:,2));
-
-end
-
-
 
 
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0

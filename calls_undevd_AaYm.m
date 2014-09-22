@@ -1,15 +1,14 @@
-function calresid = cal_devd_AaYm(AaAmfYm,Natarget,utarget,Patarget)
+function calresid_v = calls_undevd_AaYm(abarAaYm,Natarget,utarget,Patarget)
 % the objective for a calibration to target Na, uss and solve for prices
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
-Aa  = exp(AaAmfYm(1));
-Ym = exp(AaAmfYm(2));
-Amf = exp(AaAmfYm(3));
+Aa  = (abarAaYm(1));
+be = (abarAaYm(2));
+abar= (abarAaYm(3));
 options = optimset('Display','off');
 
 tau=0.0;
-%pos_solwcPa = @(logwcPa) sol_wcPa_ss(exp(logwcPa));
 
 pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 
@@ -40,6 +39,7 @@ else
 	calresid_v(1)	= Natarget - theeconomy(1);
 	calresid_v(2)	= utarget - theeconomy(2)/(1-theeconomy(1));
 	calresid_v(3)	= Patarget - wcPa_ss(2);
+	% fall off a cliff for unemployment if everyone is in agriculture
 	if(theeconomy(1)>=1) calresid_v(2) = 50; end%.05*(1/Amf); end
 end	
 
