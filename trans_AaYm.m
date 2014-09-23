@@ -230,7 +230,11 @@ price_path_back = price_path;
 for t = 1:TT-1
 	Aa = Aa_path(t);
 	Ym = Ym_path(t);
-	pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t-1,1:2));
+	if t>1
+		pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t-1,1:2));
+	else
+		pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),[u_undevd_target,Na_undevd_target]);
+	end
 	tauH = 0.05; tauL=0.001;
 	for itertau = 1:100
 		tau = 0.5*tauH+0.5*tauL;
@@ -239,7 +243,11 @@ for t = 1:TT-1
 		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
 		wcPa_t = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-		[excess_trans,trans_economy] = sol_wcPa_fwd(wcPa_t,trans_path(t+1,:),trans_path(t-1,1:2));
+		if t>1
+			[excess_trans,trans_economy] = sol_wcPa_fwd(wcPa_t,trans_path(t+1,:),trans_path(t-1,1:2));
+		else
+			[excess_trans,trans_economy] = sol_wcPa_fwd(wcPa_t,trans_path(t+1,:),[u_undevd_target,Na_undevd_target]);
+		end
 		budget_def = be*trans_economy(2) - wcPa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
 		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 			break;
@@ -255,36 +263,6 @@ for t = 1:TT-1
 end
 trans_path(TT,:) = devd_economy;
 price_dif = abs(price_path - price_path_back);
-% if(max(max(price_dif))<1e-6)
-% 	break;
-% else % this is a heuristic in case it's not converging
-% 	disp('Max deviation:')
-% 	max(max(price_dif))
-% 	for fixiter=1:10
-% 		papprox_coef = quantreg([1:TT]',price_path(:,2),.5,5,100);
-% 		%plot([1:TT],price_path(:,2),[1:TT],polyval(papprox_coef,[1:TT]'));
-% 
-% 		pbad = zeros(TT,1)==1;
-% 		% replace values that deviate from the 5th-order fit and have discontinuous
-% 		% derivatives
-% 		papprox = polyval(papprox_coef,time);
-% 		for t=2:TT-1
-% 			if(abs(papprox(t)-price_path(t,2))/(1+papprox(t))>.05 && abs(price_path(t+1,2)-2*price_path(t,2)+price_path(t-1,2))>.05 ) 
-% 				pbad(t)=1;
-% 			end
-% 			if(trans_path(t,1)<.01)
-% 				pbad(t)=1;
-% 			end
-% 		end
-% 		pgood = pbad==0;
-% 		if(sum(pbad)>0)
-% 			price_path(pbad,2) = interp1(time(pgood),price_path(pgood,2),time(pbad));
-% 		else
-% 			break;
-% 		end
-% 	end
-% end
-
 
 % check the calibration criteria at our calibration period.  
 	theeconomy	= trans_path(1,:);
