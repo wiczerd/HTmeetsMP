@@ -180,7 +180,7 @@ trans_path(TT,:)= trans_economy;
 
 trans_economy	= undevd_economy;
 trans_path(1,:)= trans_economy;
-
+trans_path_back = trans_path;
 
 % use steady state unemployment first
 trans_path(2:end,2) = -1.0;
@@ -219,7 +219,7 @@ for t = TT-1:-1:1
 			tauL=tau;
 		end
 	end
-	trans_path(t,:) = trans_economy;
+	trans_path_back(t,:) = trans_economy;
 	excess_path(t,:)= excess_trans;
 	price_path(t,:) = wcPa_t;
 end
