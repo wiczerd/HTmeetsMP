@@ -148,8 +148,8 @@ end
 
 undevd_economy = undevd_ss_economy;
 undevd_logssp = undevd_ss_logssp;
-p0_trans = [linspace(exp(devd_logssp(2)),exp(undevd_logssp (2)),TT);...
-	   linspace((atan(devd_logssp(1))+pi/2)*Ym/pi,(atan(undevd_logssp(1))+pi/2)*Ym/pi,TT)]';
+p0_trans = [linspace((atan(undevd_logssp(1))+pi/2)*Ym/pi,(atan(devd_logssp(1))+pi/2)*Ym/pi,TT);...
+	   linspace(exp(undevd_logssp(2)),exp(devd_logssp (2)),TT)]';
 
 
 %% transition backwards 
