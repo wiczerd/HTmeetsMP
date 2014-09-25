@@ -10,7 +10,7 @@ function [excess,theeconomy] = sol_wcAa(wcAa,Pa,theeconomy_tp1,ut)
 % theeconomy{6} : Vu
 
 
-global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be
+global cbar abar beta eta Ym lambda kappa theta Amf mu alpha be
 
 wc = wcAa(1);
 Aa_hr = wcAa(2);

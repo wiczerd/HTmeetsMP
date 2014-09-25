@@ -75,7 +75,7 @@ Aa_devd   = 5;
 Ym_devd   = 1.;
 
 
-for cal_iter=1:10
+for cal_iter=1:2%10
 	
 	%% for developed calibrate abar and Amf so that matches Na_target in ag,
 	% Pa_target as the price of agriculture and u_target unemployment by 
@@ -186,8 +186,8 @@ trans_path(1,:)= trans_economy;
 trans_path_back = trans_path;
 price_path_fwd = zeros(size(price_path));
 price_path_back= zeros(size(price_path));
-Aa_implied_back = zeros(t,1);
-Aa_implied_fwd  = zeros(t,1);
+Aa_implied_back = zeros(TT,1);
+Aa_implied_fwd  = zeros(TT,1);
 
 logwA = [devd_logssp(1) log(Aa_devd)];
 price_path_back(TT,:) = wcPa_devd;
