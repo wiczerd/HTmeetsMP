@@ -1,7 +1,5 @@
-function [excess,theeconomy] = sol_wcPa_fwd(wcPa,theeconomy_tp1,uNa_tm1)
-% computes a point in the economy assuming that the quantities are known in
-% the t+1 period 
-
+function [excess,theeconomy] = sol_wcAa(wcAa,Pa,theeconomy_tp1,ut)
+% computes a steady state in the economy
 % if only one output is requested, it gives excess (as in excess demand)
 % if more are requested it outputs:
 % theeconomy{1} : N_a
@@ -14,15 +12,12 @@ function [excess,theeconomy] = sol_wcPa_fwd(wcPa,theeconomy_tp1,uNa_tm1)
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be
 
-wc = wcPa(1);
-Pa = wcPa(2);
+wc = wcAa(1);
+Aa_hr = wcAa(2);
 
 Jp	= theeconomy_tp1(4);
 Vep	= theeconomy_tp1(5);
 Vup	= theeconomy_tp1(6);
-
-u_tm1	= uNa_tm1(2);
-Na_tm1	= uNa_tm1(1);
 
 
 J	= (1-lambda)*(Ym-wc + beta*Jp);
@@ -51,13 +46,15 @@ excess(1) = wc_implied - wc;
 %solve for the ag economy stuff
 
 Na_supplied = ( ( (VeVu(2)-beta*Vup)/(alpha^alpha*(Pa/(1-alpha))^(alpha-1)) + cbar +Pa*abar )...
-	/(mu*Pa*Aa) )^(1/(mu-1));
+	/(mu*Pa*Aa_hr) )^(1/(mu-1));
 
 Na_supplied = min(Na_supplied,1);
 
-wR	= mu*Pa*Aa*Na_supplied^(mu-1);
+wR	= mu*Pa*Aa_hr*Na_supplied^(mu-1);
 
-ut	= (1-pQ)*(u_tm1 + lambda*(1-u_tm1 -Na_supplied) + (Na_tm1 - Na_supplied));
+uss	= lambda*(1-Na_supplied)*(1-pQ)/(pQ + lambda*(1-pQ) );
+
+if(ut<0) ut=uss; end
 
 a_u	= (be - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_e	= (wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
@@ -65,7 +62,7 @@ a_R	= (wR - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 
 
 ag_demand  = ut*a_u + Na_supplied*a_R + (1-ut-Na_supplied)*a_e;
-excess(2)  = ag_demand - Aa*Na_supplied^mu;
-if(Na_supplied>=1) excess(2) = excess(2) - Pa^2; end
+excess(2)  = ag_demand - Aa_hr*Na_supplied^mu;
+if(Na_supplied>=1) excess(2) = excess(2) - Aa^2; end
 
-theeconomy = [Na_supplied,ut,Q,J,VeVu(1),VeVu(2)];
+theeconomy = [Na_supplied,uss,Q,J,VeVu(1),VeVu(2)];

@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
-TT	= 15;%TT_data;
+TT	= 25;%TT_data;
 save_plots =0;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -95,8 +95,8 @@ for cal_iter=1:10
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-	[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
+	wcPa_devd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_devd);
 	devd_logssp = logssp;
 
 	be_devd = be;
@@ -130,13 +130,12 @@ for cal_iter=1:10
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-	[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_ss);
+	wcPa_undevd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_undevd);
 
 	undevd_ss_logssp = logssp;
 	Aa_undevd_ss = Aa;
 	be_undevd_ss = be;
-	
 	
 	if abs(abar -abar_old)<1e-3
 		break;
@@ -170,9 +169,13 @@ rt_chng_pwr	= 1;
 Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
 Ym_path		= (1-Ym_path_chng)*Ym_undevd+Ym_path_chng*Ym_devd;
 
+be_path = (be_devd-be_undevd)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd;
+
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
-price_path  = zeros(TT,2);
+
+% initially hold it to p0
+price_path  = p0_trans;
 
 
 trans_economy	= devd_economy;
@@ -181,20 +184,17 @@ trans_path(TT,:)= trans_economy;
 trans_economy	= undevd_economy;
 trans_path(1,:)= trans_economy;
 trans_path_back = trans_path;
-
-% use steady state unemployment first
-trans_path(2:end,2) = -1.0;
-
-price_path(TT,:)= p0_trans(TT,:);
+price_path_fwd = zeros(size(price_path));
+price_path_back= zeros(size(price_path));
 
 logssp = devd_logssp;
-
-for trans_iter =1:10
+price_path_back(TT,:) = wcPa_devd;
+for trans_iter =1:1
 
 for t = TT-1:-1:1
 	Aa = Aa_path(t);
 	Ym = Ym_path(t);
-	be = (be_devd-be_undevd)*Ym/(Ym_devd - Ym_undevd) + be_undevd;
+	be = be_path(t);
 	pos_solwcPa = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t,2));
 	tauH = 0.05; tauL=0.001;
 	for itertau = 1:100
@@ -221,25 +221,25 @@ for t = TT-1:-1:1
 	end
 	trans_path_back(t,:) = trans_economy;
 	excess_path(t,:)= excess_trans;
-	price_path(t,:) = wcPa_t;
+	price_path_back(t,:) = wcPa_t;
 end
-
-price_path_back = price_path;
+price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
 
 % now go forward to get quantities right
 for t = 1:TT-1
 	Aa = Aa_path(t);
 	Ym = Ym_path(t);
+	be = be_path(t);
 	if t>1
 		pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t-1,1:2));
 	else
-		pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),[u_undevd_target,Na_undevd_target]);
+		pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),[u_undevd_target*Na_undevd_target,Na_undevd_target]);
 	end
 	tauH = 0.05; tauL=0.001;
 	for itertau = 1:100
 		tau = 0.5*tauH+0.5*tauL;
 
-		p0 = [tan(price_path_back(t,1)*pi/Ym-pi/2) log(price_path_back(t,2))]; 
+		p0 = [tan(price_path(t,1)*pi/Ym-pi/2) log(price_path(t,2))]; 
 		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
 		wcPa_t = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
@@ -259,21 +259,24 @@ for t = 1:TT-1
 	end
 	trans_path(t,:) = trans_economy;
 	excess_path(t,:)= excess_trans;
-	price_path(t,:) = wcPa_t; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
+	price_path_fwd(t,:) = wcPa_t; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
 end
 trans_path(TT,:) = devd_economy;
-price_dif = abs(price_path - price_path_back);
+price_dif = abs(price_path_fwd - price_path_back);
 
 % check the calibration criteria at our calibration period.  
 	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
 	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
+	%this makes prices the target.  
 	calresid(3)	= Pa_undevd_target - price_path(1,2);
+	%Instead I impose prices, and make sure the Aa fits:
+	%calresid(3)	= Aa_path(1) - Aa_implied(1);
 
 	resid = calresid.^2;
 	
 % adjust the path of ag TFP growth if price path is off:
-abs(price_path(:,2) - p0_trans(:,2));
+abs(price_path_back(:,2) - p0_trans(:,2));
 
 end
 
