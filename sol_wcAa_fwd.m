@@ -50,10 +50,10 @@ excess(1) = wc_implied - wc;
 
 %solve for the ag economy stuff
 
-Na_supplied = ( ( (VeVu(2)-beta*Vup)/(alpha^alpha*(Pa/(1-alpha))^(alpha-1)) + cbar +Pa*abar )...
+Na_supplied_orig = ( ( (VeVu(2)-beta*Vup)/(alpha^alpha*(Pa/(1-alpha))^(alpha-1)) + cbar +Pa*abar )...
 	/(mu*Pa*Aa_hr) )^(1/(mu-1));
 
-Na_supplied = min(Na_supplied,1);
+Na_supplied = min(Na_supplied_orig,1);
 
 wR	= mu*Pa*Aa_hr*Na_supplied^(mu-1);
 
@@ -66,6 +66,6 @@ a_R	= (wR - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 
 ag_demand  = ut*a_u + Na_supplied*a_R + (1-ut-Na_supplied)*a_e;
 excess(2)  = ag_demand - Aa_hr*Na_supplied^mu;
-if(Na_supplied>=1) excess(2) = excess(2) + Aa_hr^2; end
+if(Na_supplied>=1) excess(2) = excess(2) + (Na_supplied_orig-1)^2; end
 
 theeconomy = [Na_supplied,ut,Q,J,VeVu(1),VeVu(2)];
