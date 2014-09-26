@@ -176,6 +176,7 @@ excess_path = zeros(TT,2);
 
 % initially hold it to p0
 price_path  = p0_trans;
+trans_path(:,2) = -1; % this is an initialization that tells it to replace ut with uss.
 
 
 trans_economy	= devd_economy;
@@ -183,6 +184,7 @@ trans_path(TT,:)= trans_economy;
 
 trans_economy	= undevd_economy;
 trans_path(1,:)= trans_economy;
+
 trans_path_back = trans_path;
 price_path_fwd = zeros(size(price_path));
 price_path_back= zeros(size(price_path));
@@ -219,6 +221,7 @@ for t = TT-1:-1:1
 		end
 	end
 	trans_path_back(t,:) = trans_economy;
+	trans_path(t,:) = trans_economy;
 	excess_path(t,:)= excess_trans;
 	price_path_back(t,:) = [wcAa_t(1) Pa];
 	Aa_implied_back(t) = wcAa_t(2);
