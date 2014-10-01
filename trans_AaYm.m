@@ -10,6 +10,8 @@ global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 TT_data = 150*4;
 TT	= 50;%TT_data;
 save_plots =0;
+param_update = 0.5;
+
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
 abar	= 0.2; % this gets changed below in the calibration
@@ -122,10 +124,9 @@ for cal_iter=1:2%10
 	Na_undevd_target = 0.67;
 	u_undevd_target  = 0.07;
 	Pa_undevd_target = 1.5;
-	%cal_undevd_fn = @(abarAaYm) cal_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	%[x,fval_cal2,exitflag_cal2,out2] = fminsearch(cal_undevd_fn,log([Aa_undevd,be_undevd,abar]));
+
 	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,([Aa_undevd,be_undevd,abar]),[0,0,0],[10,Ym,Ym]);
+	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd,abar],[0,0,0],[10,Ym,Ym]);
 	
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -234,7 +235,7 @@ for t = TT-1:-1:1
 end
 price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
 Aa_implied_fwd(1) = wcAa_t(2);
-
+price_path_fwd(1,:) = [wcAa_t(1) Pa];
 %% now go forward to get quantities right
 for t = 2:TT-1
 	Aa = Aa_path(t);
@@ -280,8 +281,8 @@ for t = 2:TT-1
 end
 trans_path(TT,:) = devd_economy;
 price_dif = abs(price_path_fwd - price_path_back);
-
-% check the calibration criteria at our calibration period.  
+price_path = price_path_fwd;
+%% check the calibration criteria at our calibration period.  
 	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
 	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
@@ -291,9 +292,26 @@ price_dif = abs(price_path_fwd - price_path_back);
 	calresid(3)	= Aa_path(1) - Aa_implied_fwd(1);
 
 	resid = calresid.^2;
+
+	Aa_path = param_update*Aa_implied_fwd'+(1-param_update)*Aa_path;
+
+	%re-calibrate the low-development state with just abar and be
+	Aa = Aa_path(1);
+	Ym = Ym_path(1);
+	Pa = price_path(1,2);
+	w0 = price_path(1,1);
+	cal_undevd_fn = @(beabar) calls_undevd_beabar(beabar,Pa,w0,Na_undevd_target,u_undevd_target,trans_path);
+	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,([be_undevd,abar]),[0,0],[Ym,Ym]);
 	
-% adjust the path of ag TFP growth if price path is off:
-abs(price_path_back(:,2) - p0_trans(:,2));
+	
+	pos_solwcPa = @(wc) sol_wc( (atan( wc )+pi/2)*Ym/pi, Pa,trans_path(2,:),utarget);
+	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa, tan(w0*pi/Ym-pi/2) );
+	wcPa_undevd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_undevd);
+
+	undevd_ss_logssp = logssp;
+	Aa_undevd_ss = Aa;
+	be_undevd_ss = be;
 
 end
 
