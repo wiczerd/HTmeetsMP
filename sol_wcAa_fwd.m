@@ -1,4 +1,4 @@
-function [excess,theeconomy] = sol_wcAa_fwd(wcAa,Pa,theeconomy_tp1,uNa_tm1)
+function [excess,theeconomy] = sol_wcAa_fwd(wcAa,Pa,theeconomy_tp1,Nau_tm1)
 % computes a point in the economy assuming that the quantities are known in
 % the t+1 period 
 
@@ -12,7 +12,7 @@ function [excess,theeconomy] = sol_wcAa_fwd(wcAa,Pa,theeconomy_tp1,uNa_tm1)
 % theeconomy{6} : Vu
 
 
-global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be
+global cbar abar beta eta Ym lambda kappa theta Amf mu alpha be
 
 wc = wcAa(1);
 Aa_hr = wcAa(2);
@@ -21,8 +21,8 @@ Jp	= theeconomy_tp1(4);
 Vep	= theeconomy_tp1(5);
 Vup	= theeconomy_tp1(6);
 
-u_tm1	= uNa_tm1(2);
-Na_tm1	= uNa_tm1(1);
+u_tm1	= Nau_tm1(2);
+Na_tm1	= Nau_tm1(1);
 
 
 J	= (1-lambda)*(Ym-wc + beta*Jp);
@@ -66,6 +66,6 @@ a_R	= (wR - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 
 ag_demand  = ut*a_u + Na_supplied*a_R + (1-ut-Na_supplied)*a_e;
 excess(2)  = ag_demand - Aa_hr*Na_supplied^mu;
-if(Na_supplied>=1) excess(2) = excess(2) - (Na_supplied_orig-1)^2; end
+if(Na_supplied>=1) excess(2) = excess(2) -  (Na_supplied_orig-1)^2; end
 
 theeconomy = [Na_supplied,ut,Q,J,VeVu(1),VeVu(2)];

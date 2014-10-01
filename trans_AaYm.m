@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
-TT	= 25;%TT_data;
+TT	= 50;%TT_data;
 save_plots =0;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -188,17 +188,22 @@ trans_path(1,:)= trans_economy;
 trans_path_back = trans_path;
 price_path_fwd = zeros(size(price_path));
 price_path_back= zeros(size(price_path));
+solpath_back = zeros(size(price_path));
+
 Aa_implied_back = ones(TT,1)*Aa_devd;
 Aa_implied_fwd  = ones(TT,1)*Aa_devd;
+
 
 price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
 for trans_iter =1:1%10
-
+%%
 logwA = [devd_logssp(1) log(Aa_devd)];
+wcAa_t= [wcPa_devd(1) Aa_devd];
 for t = TT-1:-1:1
 	Aa = Aa_path(t);
-	logwA(2) = log(Aa);
+	logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
+	logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
 	Ym = Ym_path(t);
 	be = be_path(t);
 	Pa = price_path(t,2);
@@ -223,34 +228,41 @@ for t = TT-1:-1:1
 	trans_path_back(t,:) = trans_economy;
 	trans_path(t,:) = trans_economy;
 	excess_path(t,:)= excess_trans;
+	solpath_back(t,:) = logwA;
 	price_path_back(t,:) = [wcAa_t(1) Pa];
 	Aa_implied_back(t) = wcAa_t(2);
 end
 price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
+Aa_implied_fwd(1) = wcAa_t(2);
 
-% now go forward to get quantities right
-for t = 1:TT-1
+%% now go forward to get quantities right
+for t = 2:TT-1
 	Aa = Aa_path(t);
 	Ym = Ym_path(t);
 	be = be_path(t);
 	Pa = price_path(t,2);
-	if t>1
+	if t>2
 		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 	else
-		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[u_undevd_target*Na_undevd_target,Na_undevd_target]);
+		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,u_undevd_target*(1-Na_undevd_target)]);
 	end
 	tauH = 0.05; tauL=0.001;
 	for itertau = 1:100
 		tau = 0.5*tauH+0.5*tauL;
 
-		p0 = [tan(price_path(t,1)*pi/Ym-pi/2) log(Aa)]; 
+		p0 = solpath_back(t,:); 
 		[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
-		wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(Aa)];
+		wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-		if t>1
+		if(exitflag<=0)
+			logwA = p0;
+			wcAa_t = [price_path(t,1)  Aa_path(t)];
+		end
+		
+		if t>2
 			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 		else
-			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[u_undevd_target,Na_undevd_target]);
+			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*u_undevd_target]);
 		end
 		budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
 		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
