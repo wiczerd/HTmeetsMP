@@ -10,7 +10,7 @@ global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 TT_data = 150*4;
 TT	= 50;%TT_data;
 save_plots =0;
-param_update = 0.5;
+param_update = 1.0;
 
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -72,12 +72,12 @@ tau	= 0.0;
 % initial guesses:
 Aa_undevd = .5;
 Ym_undevd = 1.;
-be_undevd = be/4;
+be_undevd_ss = be/4;
 Aa_devd   = 5;
 Ym_devd   = 1.;
 
 
-for cal_iter=1:2%10
+for cal_iter=1:10
 	
 	%% for developed calibrate abar and Amf so that matches Na_target in ag,
 	% Pa_target as the price of agriculture and u_target unemployment by 
@@ -126,7 +126,7 @@ for cal_iter=1:2%10
 	Pa_undevd_target = 1.5;
 
 	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd,abar],[0,0,0],[10,Ym,Ym]);
+	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
 	
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -170,7 +170,7 @@ rt_chng_pwr	= 1;
 Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
 Ym_path		= (1-Ym_path_chng)*Ym_undevd+Ym_path_chng*Ym_devd;
 
-be_path = (be_devd-be_undevd)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd;
+be_path = (be_devd-be_undevd_ss)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd_ss;
 
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
@@ -197,92 +197,97 @@ Aa_implied_fwd  = ones(TT,1)*Aa_devd;
 
 price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
-for trans_iter =1:1%10
+for trans_iter =1:10
 %%
-logwA = [devd_logssp(1) log(Aa_devd)];
-wcAa_t= [wcPa_devd(1) Aa_devd];
-for t = TT-1:-1:1
-	Aa = Aa_path(t);
-	logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
-	logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
-	Ym = Ym_path(t);
-	be = be_path(t);
-	Pa = price_path(t,2);
-	pos_solwcAa = @(wcAa) sol_wcAa([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t,2) );
-	tauH = 0.05; tauL=0.001;
-	for itertau = 1:100
-		tau = 0.5*tauH+0.5*tauL;
-		p0 = logwA;
-		[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
-		wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
-		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-		[excess_trans,trans_economy] = sol_wcAa(wcAa_t,Pa,trans_path(t+1,:),trans_path(t,2));
-		budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
-		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
-			break;
-		elseif (budget_def < 0)
-			tauH=tau;
-		elseif(budget_def > 0)
-			tauL=tau;
+	logwA = [devd_logssp(1) log(Aa_devd)];
+	wcAa_t= [wcPa_devd(1) Aa_devd];
+	for t = TT-1:-1:1
+		Aa = Aa_path(t);
+		logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
+		logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
+		Ym = Ym_path(t);
+		be = be_path(t);
+		Pa = price_path(t,2);
+		pos_solwcAa = @(wcAa) sol_wcAa([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t,2) );
+		tauH = 0.05; tauL=0.001;
+		for itertau = 1:100
+			tau = 0.5*tauH+0.5*tauL;
+			p0 = logwA;
+			[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
+			wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
+			% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
+			[excess_trans,trans_economy] = sol_wcAa(wcAa_t,Pa,trans_path(t+1,:),trans_path(t,2));
+			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
+				break;
+			elseif (budget_def < 0)
+				tauH=tau;
+			elseif(budget_def > 0)
+				tauL=tau;
+			end
 		end
+		trans_path_back(t,:) = trans_economy;
+		trans_path(t,:) = trans_economy;
+		excess_path(t,:)= excess_trans;
+		solpath_back(t,:) = logwA;
+		price_path_back(t,:) = [wcAa_t(1) Pa];
+		Aa_implied_back(t) = wcAa_t(2);
 	end
-	trans_path_back(t,:) = trans_economy;
-	trans_path(t,:) = trans_economy;
-	excess_path(t,:)= excess_trans;
-	solpath_back(t,:) = logwA;
-	price_path_back(t,:) = [wcAa_t(1) Pa];
-	Aa_implied_back(t) = wcAa_t(2);
-end
-price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
-Aa_implied_fwd(1) = wcAa_t(2);
-price_path_fwd(1,:) = [wcAa_t(1) Pa];
-%% now go forward to get quantities right
-for t = 2:TT-1
-	Aa = Aa_path(t);
-	Ym = Ym_path(t);
-	be = be_path(t);
-	Pa = price_path(t,2);
-	if t>2
-		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
-	else
-		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,u_undevd_target*(1-Na_undevd_target)]);
-	end
-	tauH = 0.05; tauL=0.001;
-	for itertau = 1:100
-		tau = 0.5*tauH+0.5*tauL;
-
-		p0 = solpath_back(t,:); 
-		[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
-		wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
-		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-		if(exitflag<=0)
-			logwA = p0;
-			wcAa_t = [price_path(t,1)  Aa_path(t)];
-		end
-		
+	price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
+	Aa_implied_fwd(1) = wcAa_t(2);
+	price_path_fwd(1,:) = [wcAa_t(1) Pa];
+	%% now go forward to get quantities right
+	for t = 2:TT-1
+		Aa = Aa_path(t);
+		Ym = Ym_path(t);
+		be = be_path(t);
+		Pa = price_path(t,2);
 		if t>2
-			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
+		abar = param_update*abar + (1-param_update)*abar_old;
+		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 		else
-			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*u_undevd_target]);
+			pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,u_undevd_target*(1-Na_undevd_target)]);
 		end
-		budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
-		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
-			break;
-		elseif (budget_def < 0)
-			tauH=tau;
-		elseif(budget_def > 0)
-			tauL=tau;
+		tauH = 0.05; tauL=0.001;
+		for itertau = 1:100
+			tau = 0.5*tauH+0.5*tauL;
+
+			p0 = solpath_back(t,:); 
+			[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
+			wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
+			% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
+			if(exitflag<=0)
+				logwA = p0;
+				wcAa_t = [price_path(t,1)  Aa_path(t)];
+			end
+
+			if t>2
+				[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
+			else
+				[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*u_undevd_target]);
+			end
+			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
+				break;
+			elseif (budget_def < 0)
+				tauH=tau;
+			elseif(budget_def > 0)
+				tauL=tau;
+			end
 		end
+		trans_path(t,:) = trans_economy;
+		excess_path(t,:)= excess_trans;
+		price_path_fwd(t,:) = [wcAa_t(1) Pa]; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
+		Aa_implied_fwd(t) = wcAa_t(2);
 	end
-	trans_path(t,:) = trans_economy;
-	excess_path(t,:)= excess_trans;
-	price_path_fwd(t,:) = [wcAa_t(1) Pa]; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
-	Aa_implied_fwd(t) = wcAa_t(2);
-end
-trans_path(TT,:) = devd_economy;
-price_dif = abs(price_path_fwd - price_path_back);
-price_path = price_path_fwd;
-%% check the calibration criteria at our calibration period.  
+	trans_path(TT,:) = devd_economy;
+	price_dif = abs(price_path_fwd - price_path_back);
+	price_path = price_path_fwd;
+% check the calibration criteria at our calibration period.  
+
+	abar_old = abar;
+	be_old = be_path;
+%%	
 	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
 	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
@@ -297,21 +302,24 @@ price_path = price_path_fwd;
 
 	%re-calibrate the low-development state with just abar and be
 	Aa = Aa_path(1);
-	Ym = Ym_path(1);
-	Pa = price_path(1,2);
-	w0 = price_path(1,1);
-	cal_undevd_fn = @(beabar) calls_undevd_beabar(beabar,Pa,w0,Na_undevd_target,u_undevd_target,trans_path);
-	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,([be_undevd,abar]),[0,0],[Ym,Ym]);
-	
-	
-	pos_solwcPa = @(wc) sol_wc( (atan( wc )+pi/2)*Ym/pi, Pa,trans_path(2,:),utarget);
-	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa, tan(w0*pi/Ym-pi/2) );
-	wcPa_undevd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-	[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_undevd);
-
-	undevd_ss_logssp = logssp;
-	Aa_undevd_ss = Aa;
-	be_undevd_ss = be;
+ 	Ym = Ym_path(1);
+ 	Pa = price_path(1,2);
+ 	w0 = price_path(1,1);
+ 	be = be_path(1);
+ 	cal_undevd_fn = @(beabar) calls_undevd_beabar(beabar,Pa,w0,Na_undevd_target,u_undevd_target,trans_path);
+ 	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[be abar],[0 0],[Ym Ym]);
+ 
+ 	pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
+ 	%pos_solwc = @(wcAa) sol_wcAa([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
+ 
+ 	[tanw, fval,exitflag,output,J] = fsolve(pos_solwc,tan(w0*pi/Ym-pi/2));
+ 	[excess_undevd,undevd_economy] = sol_wc((atan(tanw)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2));
+ %%
+	be_undevd = be;
+%	be_undevd = be_path(1);
+	be_path_implied = (be_devd-be_undevd)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd;
+	be_path = param_update*be_path_implied + (1-param_update)*be_path;
+	abar = param_update*abar + (1-param_update)*abar_old;
 
 end
 

@@ -53,7 +53,8 @@ wR	= mu*Pa*Aa_hr*Na_supplied^(mu-1);
 
 uss	= lambda*(1-Na_supplied)*(1-pQ)/(pQ + lambda*(1-pQ) );
 
-if(ut<0) ut=uss; end
+%if(ut<0) ut=uss; end
+ut = uss;
 
 a_u	= (be - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_e	= (wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
@@ -62,6 +63,6 @@ a_R	= (wR - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 
 ag_demand  = ut*a_u + Na_supplied*a_R + (1-ut-Na_supplied)*a_e;
 %excess(2)  = ag_demand - Aa_hr*Na_supplied^mu;
-if(Na_supplied>=1) excess(2) = excess(2) - (Na_supplied_orig-1)^2; end
+%if(Na_supplied>=1) excess = excess - (Na_supplied_orig-1)^2; end
 
 theeconomy = [Na_supplied,ut,Q,J,VeVu(1),VeVu(2)];
