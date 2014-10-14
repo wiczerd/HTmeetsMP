@@ -297,7 +297,7 @@ for trans_iter =1:10
 	calresid(3)	= Aa_path(1) - Aa_implied_fwd(1);
 
 	resid = calresid.^2;
-
+	
 	Aa_path = param_update*Aa_implied_fwd'+(1-param_update)*Aa_path;
 
 	%re-calibrate the low-development state with just abar and be
@@ -308,18 +308,25 @@ for trans_iter =1:10
  	be = be_path(1);
  	cal_undevd_fn = @(beabar) calls_undevd_beabar(beabar,Pa,w0,Na_undevd_target,u_undevd_target,trans_path);
  	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[be abar],[0 0],[Ym Ym]);
+	%[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
  
- 	pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
- 	%pos_solwc = @(wcAa) sol_wcAa([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
+ 	%pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
+ 	pos_solwc = @(wcAa) sol_wcAa([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
  
- 	[tanw, fval,exitflag,output,J] = fsolve(pos_solwc,tan(w0*pi/Ym-pi/2));
- 	[excess_undevd,undevd_economy] = sol_wc((atan(tanw)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2));
+ 	[tanw, fval,exitflag,output,J] = fsolve(pos_solwc,[tan(w0*pi/Ym-pi/2) log(Aa)]);
+ 	[excess_undevd,undevd_economy] = sol_wcAa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],Pa,trans_path(2,:),trans_path(1,2));
  %%
+ 
+	param_resid = abs(be-be_path(1)) + abs(abar - abar_old);
 	be_undevd = be;
 %	be_undevd = be_path(1);
 	be_path_implied = (be_devd-be_undevd)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd;
 	be_path = param_update*be_path_implied + (1-param_update)*be_path;
 	abar = param_update*abar + (1-param_update)*abar_old;
+	
+	if sum(resid)<1e-5 && param_resid< 1e-5
+		break;
+	end
 
 end
 
