@@ -177,7 +177,7 @@ be_path = (be_devd-be_undevd_ss)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
 uss_path = zeros(TT,1);
-
+utback_path= zeros(TT,1);
 % initially hold it to p0
 price_path  = p0_trans;
 trans_path(:,2) = -1; % this is an initialization that tells it to replace ut with uss.
@@ -200,7 +200,7 @@ Aa_implied_fwd  = ones(TT,1)*Aa_devd;
 
 price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
-for trans_iter =1:10
+for trans_iter =1:20
 %%
 	logwA = [devd_logssp(1) log(Aa_devd)];
 	wcAa_t= [wcPa_devd(1) Aa_devd];
@@ -241,6 +241,15 @@ for trans_iter =1:10
 	price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
 	Aa_implied_fwd(1) = wcAa_t(2);
 	price_path_fwd(1,:) = [wcAa_t(1) Pa];
+	utback_path(1) = u_undevd_target*(1-Na_undevd_target);
+	for t = 2:TT-1
+		pQ	= Amf*trans_path_back(t,3)^(1-eta);
+		Na_t = trans_path_back(t,1);
+		Na_tm1 = trans_path_back(t-1,1);
+		u_tm1 = utback_path(t-1);
+		utback_path(t) = (1-pQ)*(u_tm1 + lambda*(1-u_tm1 -Na_t) + (Na_tm1 - Na_t));
+	end
+%	trans_path(:,2) = utback_path;
 	%% now go forward to get quantities right
 	for t = 2:TT-1
 		Aa = Aa_path(t);
@@ -248,8 +257,7 @@ for trans_iter =1:10
 		be = be_path(t);
 		Pa = price_path(t,2);
 		if t>2
-		abar = param_update*abar + (1-param_update)*abar_old;
-		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
+			pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 		else
 			pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,u_undevd_target*(1-Na_undevd_target)]);
 		end
@@ -320,6 +328,8 @@ for trans_iter =1:10
  
  	[tanw, fval,exitflag,output,J] = fsolve(pos_solwc,[tan(w0*pi/Ym-pi/2) log(Aa)]);
  	[excess_undevd,undevd_economy] = sol_wcAa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],Pa,trans_path(2,:),trans_path(1,2));
+	trans_path(1,:) = undevd_economy;
+	
  %%
  
 	param_resid = abs(be-be_path(1)) + abs(abar - abar_old);
@@ -354,6 +364,8 @@ cd trans_AaYm_results/calAa_linYm
 
 save trans_space
 upath = trans_path(:,2)./(1-trans_path(:,1));
+upath_back = trans_path_back(:,2)./(1-trans_path_back(:,1));
+
 mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
 %
 figure(1);
