@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
-TT	= 50;%TT_data;
+TT	= TT_data;
 save_plots =0;
 param_update = 1.0;
 
@@ -166,14 +166,17 @@ rt_chng_pwr	= 1;
 Aa_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
 Aa_path		= (1-Aa_path_chng)*Aa_undevd_ss+Aa_path_chng*Aa_devd;
 
-rt_chng_pwr	= 1;
-Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Ym_path		= (1-Ym_path_chng)*Ym_undevd+Ym_path_chng*Ym_devd;
+%rt_chng_pwr	= 1;
+%Ym_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
+%Ym_path	= (1-Ym_path_chng)*Ym_undevd+Ym_path_chng*Ym_devd;
+rt_chng_pwr	= (Ym_devd/Ym_undevd)^(1/(TT-1));
+Ym_path		= Ym_undevd*rt_chng_pwr.^(linspace(0,TT-1,TT));
 
 be_path = (be_devd-be_undevd_ss)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd_ss;
 
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
+uss_path = zeros(TT,1);
 
 % initially hold it to p0
 price_path  = p0_trans;
@@ -232,6 +235,8 @@ for trans_iter =1:10
 		solpath_back(t,:) = logwA;
 		price_path_back(t,:) = [wcAa_t(1) Pa];
 		Aa_implied_back(t) = wcAa_t(2);
+		pQ	= Amf*trans_economy(3)^(1-eta);
+		uss_path(t) = lambda*(1-trans_economy(1))*(1-pQ)/(pQ + lambda*(1-pQ) );
 	end
 	price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
 	Aa_implied_fwd(1) = wcAa_t(2);
@@ -324,7 +329,7 @@ for trans_iter =1:10
 	be_path = param_update*be_path_implied + (1-param_update)*be_path;
 	abar = param_update*abar + (1-param_update)*abar_old;
 	
-	if sum(resid)<1e-5 && param_resid< 1e-5
+	if (sum(resid)<1e-5) || (trans_iter >2 && param_resid< 1e-5)
 		break;
 	end
 
@@ -345,7 +350,7 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 %%
 save_plots =1;
-cd trans_AaYm_results/linAa_veryslowYm
+cd trans_AaYm_results/calAa_linYm
 
 save trans_space
 upath = trans_path(:,2)./(1-trans_path(:,1));
