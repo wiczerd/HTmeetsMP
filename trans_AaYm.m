@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
-TT	= TT_data;
+TT	= 50;%T_data;
 save_plots =0;
 param_update = 1.0;
 
@@ -41,32 +41,7 @@ tau	= 0.0;
 % qrt = @(Q) Q.^-eta;
 % prt = @(Q) Q.(1-eta);
 
-%% solve for the steady state with the original parameters (just to see that it actually works)
-% 
-% sol_wcPa_ss([.5,.4])
-% %pos_solwcPa = @(logwcPa) sol_wcPa_ss(exp(logwcPa));
-% pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-% 
-% 
-% [logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-% % loop on tau
-% tauH = .1;tauL=0.;
-% for itertau = 1:100
-% 	tau = 0.5*tauH+0.5*tauL;
-% 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,logssp,optimset('Display','off'));
-% 	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-% 	% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-% 	[excess_ss,sseconomy] = sol_wcPa_ss([wcPa_ss]);
-% 	budget_def = be*sseconomy(2) - wcPa_ss(1)*tau*(1-sseconomy(2)-sseconomy(1));
-% 	if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
-% 		break;
-% 	elseif (budget_def < 0)
-% 		tauH=tau;
-% 	elseif(budget_def > 0)
-% 		tauL=tau;
-% 	end
-% end
-% 	
+ 	
 %% calibrate it
 
 % initial guesses:
@@ -125,8 +100,10 @@ for cal_iter=1:10
 	u_undevd_target  = 0.07;
 	Pa_undevd_target = 1.5;
 
-	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
+%	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
+%	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
+	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm_fixbe(abarAaYm,Na_undevd_target,Pa_undevd_target);
+	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,abar],[0,0],[10,Ym]);
 	
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -319,8 +296,8 @@ for trans_iter =1:20
  	Pa = price_path(1,2);
  	w0 = price_path(1,1);
  	be = be_path(1);
- 	cal_undevd_fn = @(beabar) calls_undevd_beabar(beabar,Pa,w0,Na_undevd_target,u_undevd_target,trans_path);
- 	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[be abar],[0 0],[Ym Ym]);
+ 	cal_undevd_fn = @(beabar) calls_undevd_AaYm_bkwd(beabar,Pa,w0,trans_path(1,2),trans_path);
+ 	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
 	%[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
  
  	%pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
