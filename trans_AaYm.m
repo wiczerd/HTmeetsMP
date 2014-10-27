@@ -103,7 +103,7 @@ for cal_iter=1:10
 %	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
 %	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
 	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm_fixbe(abarAaYm,Na_undevd_target,Pa_undevd_target);
-	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,abar],[0,0],[10,Ym]);
+	[x,fval_cal2,resid2,exitflag_cal2,out2,lam2, jac2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,abar],[0,0],[10,Ym]);
 	
 	
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -296,15 +296,15 @@ for trans_iter =1:20
  	Pa = price_path(1,2);
  	w0 = price_path(1,1);
  	be = be_path(1);
- 	cal_undevd_fn = @(beabar) calls_undevd_AaYm_bkwd(beabar,Pa,w0,trans_path(1,2),trans_path);
- 	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
+	options = optimoptions('fsolve','Jacobian','off');
+ 	cal_undevd_fn = @(beabar) calls_undevd_AaYm_bkwd(beabar,Pa,w0,Na_undevd_target,trans_path);
+ 	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[Pa*1.1 abar*.9],[0 0],[10 Ym]);
 	%[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
  
  	%pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
- 	pos_solwc = @(wcAa) sol_wcAa([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
- 
- 	[tanw, fval,exitflag,output,J] = fsolve(pos_solwc,[tan(w0*pi/Ym-pi/2) log(Aa)]);
- 	[excess_undevd,undevd_economy] = sol_wcAa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],Pa,trans_path(2,:),trans_path(1,2));
+ 	pos_solwc = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
+  	[tanw, fval,exitflag,output,J] = fsolve(pos_solwc,[tan(w0*pi/Ym-pi/2) log(Pa)]);
+ 	[excess_undevd,undevd_economy] = sol_wcPa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],trans_path(2,:),trans_path(1,2));
 	trans_path(1,:) = undevd_economy;
 	
  %%
