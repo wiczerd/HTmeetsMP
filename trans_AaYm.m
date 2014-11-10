@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
-TT	= 50;%T_data;
+TT	= TT_data;
 save_plots =0;
 param_update = 1.0;
 
@@ -19,7 +19,7 @@ Aa	= 1.0;
 beta	= 0.99;
 eta	= 0.72;
 Ym	= 1.12;
-lambda	= 0.03;
+lambda	= 0.09;
 kappa	= 0.19;
 theta	= 0.72;
 Amf	= 0.5;
@@ -336,58 +336,101 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 
 %%
-save_plots =1;
 cd trans_AaYm_results/calAa_linYm
 
-save trans_space
+save trans_space_lowfriction
+
+%%
 upath = trans_path(:,2)./(1-trans_path(:,1));
 upath_back = trans_path_back(:,2)./(1-trans_path_back(:,1));
 
 mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
 %
 figure(1);
-[ax,h1,h2]=plotyy([1:TT],trans_path(:,1),[1:TT],Aa_path);title('Fraction in agriculture');
+[ax,h1,h2]=plotyy([1:TT],trans_path(:,1),[1:TT],Aa_path);title('Fraction in agriculture','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','N_a','A_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'Natrans','eps2c'); end
 
 figure(2);
-[ax,h1,h2]=plotyy([2:TT],mpath,[1:TT],Aa_path);title('Rural -> urban rate');
+[ax,h1,h2]=plotyy([2:TT],mpath,[1:TT],Aa_path);title('Rural -> urban rate','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','m/N_a','A_a');
+set(gcf,'color','white');
+%axes(ax(1));axis([-inf inf 0.0 0.001]);
+set(ax(1), 'YLim', [0.0 0.01]);
+set(ax(1), 'YTick', [0.0:0.002:0.01]);
+grid on;
 if (save_plots == 1) saveas(gca,'mtrans','eps2c'); end
 
 figure(3);
-[ax,h1,h2]=plotyy([1:TT],upath,[1:TT],Ym_path);title('Unemployment rate');
+[ax,h1,h2]=plotyy([1:TT],upath,[1:TT],Ym_path);title('Unemployment rate','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','Y_m');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'utrans','eps2c'); end
 
 figure(4);
-[ax,h1,h2]=plotyy([1:TT],Amf*trans_path(:,3).^(1-eta),[1:TT],Ym_path);title('Job finding rate');
+[ax,h1,h2]=plotyy([1:TT],Amf*trans_path(:,3).^(1-eta),[1:TT],Ym_path);title('Job finding rate','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','Y_m');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'pQtrans','eps2c'); end
 	
 figure(5);
-[ax,h1,h2]=plotyy([1:TT],percaprev_pt(:,1)./percaprev_pt(:,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t');
+[ax,h1,h2]=plotyy([1:TT],percaprev_pt(:,1)./percaprev_pt(:,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','NorthEast','P_t y_a/y_m','P_t y_a');
 y20 = min(percaprev_pt(:,1));y2Y=max(percaprev_pt(:,1));
 y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
 set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'rev_Pt_trans','eps2c'); end
 
 figure(6);
-h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0');
+h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0','FontSize',14);
 set(h,'LineWidth',2);legend('Location','North','P_0 y_a/y_m','P_0 y_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'rev_P0_trans','eps2c'); end
 
 
 figure(7);
-h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1));title('Relative Revenue Per Capita, P_T');
+h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1));title('Relative Revenue Per Capita, P_T','FontSize',14);
 set(h,'LineWidth',2);legend('Location','North','P_T y_a/y_m','P_T y_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'rev_PTT_trans','eps2c'); end
 
 figure(8);
-[ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good');
+[ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'agPrice','eps2c'); end
 
-
+%%
 cd ~/Documents/CurrResearch/Devt/Computation
+
+
+%%
+
+figure(9);
+hh=plot([2:TT-1],mpath_hifric(1:end-1),[2:TT-1],mpath_lowfric(1:end-1));axis([-inf inf 0 inf]);
+title('Rural -> urban rate','FontSize',14);
+set(hh,'LineWidth',2);legend('Location','South','m/N_a low frictions','m/N_a high frictions');
+set(gcf,'color','white');
+grid on;
+if (save_plots == 1) saveas(gca,'mtrans_compare','eps2c'); end
+
+upath_hifric = trans_path_hifric(:,2)./(1-trans_path_hifric(:,1));
+
+figure(10);
+hh=plot([1:TT],upath_hifric,[1:TT],upath_lowfric);
+title('Unemployment rate','FontSize',14);
+set(hh,'LineWidth',2);legend('Location','South','u low frictions','u high frictions');
+set(gcf,'color','white');
+grid on;
+if (save_plots == 1) saveas(gca,'utrans_compare','eps2c'); end
+
+
