@@ -9,7 +9,7 @@ global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT_data = 150*4;
 TT	= TT_data;
-save_plots =0;
+save_plots =1;
 param_update = 1.0;
 
 
@@ -284,7 +284,8 @@ for trans_iter =1:20
 	%calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
 	%this makes prices the target.  
 	calresid(2)	= Pa_undevd_target - price_path(1,2);
-	%Instead I impose prices, and make sure the Aa fits:
+	
+	%Convergence in A? :
 	calresid(3)	= sum(abs(Aa_implied_back - Aa_implied_fwd));
 
 	resid = calresid.^2;
