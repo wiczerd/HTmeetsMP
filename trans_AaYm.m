@@ -19,7 +19,7 @@ Aa	= 1.0;
 beta	= 0.99;
 eta	= 0.72;
 Ym	= 1.12;
-lambda	= 0.09;
+lambda	= 0.03;
 kappa	= 0.19;
 theta	= 0.72;
 Amf	= 0.5;
@@ -97,7 +97,7 @@ for cal_iter=1:10
 	% to change the calibration target values change Na_target, u_target,
 	% Pa_target
 	Na_undevd_target = 0.67;
-	u_undevd_target  = 0.07;
+	% NO LONGER TARGETING: u_undevd_target  = 0.07;
 	Pa_undevd_target = 1.5;
 
 %	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
@@ -218,7 +218,7 @@ for trans_iter =1:20
 	price_path(:,1) = price_path_back(:,1); % replace wages, but hold fixed the Pa;
 	Aa_implied_fwd(1) = wcAa_t(2);
 	price_path_fwd(1,:) = [wcAa_t(1) Pa];
-	utback_path(1) = u_undevd_target*(1-Na_undevd_target);
+	utback_path(1) = trans_path_back(1,2)*(1-trans_path_back(1,1));
 	for t = 2:TT-1
 		pQ	= Amf*trans_path_back(t,3)^(1-eta);
 		Na_t = trans_path_back(t,1);
@@ -233,11 +233,11 @@ for trans_iter =1:20
 		Ym = Ym_path(t);
 		be = be_path(t);
 		Pa = price_path(t,2);
-		if t>2
+	%	if t>2
 			pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
-		else
-			pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,u_undevd_target*(1-Na_undevd_target)]);
-		end
+	%	else
+	%		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,trans_path_back(1,2)*(1-Na_undevd_target)]);
+	%	end
 		tauH = 0.05; tauL=0.001;
 		for itertau = 1:100
 			tau = 0.5*tauH+0.5*tauL;
@@ -251,11 +251,11 @@ for trans_iter =1:20
 				wcAa_t = [price_path(t,1)  Aa_path(t)];
 			end
 
-			if t>2
+	%		if t>2
 				[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
-			else
-				[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*u_undevd_target]);
-			end
+	%		else
+	%			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*trans_path_back(1,2)]);
+	%		end
 			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
@@ -280,17 +280,18 @@ for trans_iter =1:20
 %%	
 	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
-	calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
+	% this makes the unemployment target
+	%calresid(2)	= u_undevd_target - theeconomy(2)/(1-theeconomy(1));
 	%this makes prices the target.  
-	%calresid(3)	= Pa_undevd_target - price_path(1,2);
+	calresid(2)	= Pa_undevd_target - price_path(1,2);
 	%Instead I impose prices, and make sure the Aa fits:
-	calresid(3)	= Aa_path(1) - Aa_implied_fwd(1);
+	calresid(3)	= sum(abs(Aa_implied_back - Aa_implied_fwd));
 
 	resid = calresid.^2;
 	
 	Aa_path = param_update*Aa_implied_fwd'+(1-param_update)*Aa_path;
 
-	%re-calibrate the low-development state with just abar and be
+	%re-calibrate the low-development state with just abar
 	Aa = Aa_path(1);
  	Ym = Ym_path(1);
  	Pa = price_path(1,2);
@@ -316,7 +317,7 @@ for trans_iter =1:20
 	be_path = param_update*be_path_implied + (1-param_update)*be_path;
 	abar = param_update*abar + (1-param_update)*abar_old;
 	
-	if (sum(resid)<1e-5) || (trans_iter >2 && param_resid< 1e-5)
+	if (sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6)
 		break;
 	end
 
@@ -416,10 +417,12 @@ cd ~/Documents/CurrResearch/Devt/Computation
 %%
 
 figure(9);
-hh=plot([2:TT-1],mpath_hifric(1:end-1),[2:TT-1],mpath_lowfric(1:end-1));axis([-inf inf 0 inf]);
+hh=plot([2:TT-1],mpath_hifric(1:end-1),[2:TT-1],mpath_lowfric(1:end-1));
 title('Rural -> urban rate','FontSize',14);
 set(hh,'LineWidth',2);legend('Location','South','m/N_a low frictions','m/N_a high frictions');
 set(gcf,'color','white');
+set(gca, 'YLim', [0.0 0.004]);
+set(gca, 'YTick', [0.0:0.001:0.004]);
 grid on;
 if (save_plots == 1) saveas(gca,'mtrans_compare','eps2c'); end
 
