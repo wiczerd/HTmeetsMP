@@ -11,7 +11,7 @@ TT = 400;
 save_plots =0;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
-abar	= 0.09; % this gets changed below in the calibration
+abar	= 0.2; % this gets changed below in the calibration
 Aa	= 1.0;
 beta	= 0.99;
 eta	= 0.72;
@@ -19,10 +19,10 @@ Ym	= 1.12;
 lambda	= 0.03;
 kappa	= 0.19;
 theta	= 0.72;
-Amf	= 0.25;
+Amf	= 0.5;
 mu	= 0.99;
 alpha	= 0.992;
-be	= 0.1;
+be	= 0.4;
 tau	= 0.0;
 
 
@@ -38,83 +38,69 @@ tau	= 0.0;
 % qrt = @(Q) Q.^-eta;
 % prt = @(Q) Q.(1-eta);
 
-%% solve for the steady state with the original parameters
-
-sol_wcPa_ss([.5,.4])
-%pos_solwcPa = @(logwcPa) sol_wcPa_ss(exp(logwcPa));
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-
-
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-% loop on tau
-tauH = .1;tauL=0.;
-for itertau = 1:100
-	tau = 0.5*tauH+0.5*tauL;
-	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,logssp,optimset('Display','off'));
-	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-	% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-	[excess_ss,sseconomy] = sol_wcPa_ss([wcPa_ss]);
-	budget_def = be*sseconomy(2) - wcPa_ss(1)*tau*(1-sseconomy(2)-sseconomy(1));
-	if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
-		break;
-	elseif (budget_def < 0)
-		tauH=tau;
-	elseif(budget_def > 0)
-		tauL=tau;
-	end
-end
 	
 %% calibrate it
 
+
+%initialize stuff:
+Ym_devd = 1.;
+Amf_devd = .5;
+Aa_devd = 5.;
+Aa_undevd = Aa;
+Amf_undevd = .5;
+
 % first calibrate abar and Amf so that matches 5% in ag and 5%
 % unemployment by changing abar and Amf
-
-% to change the calibration target values change Na_target, u_target
-Na_target = 0.05;
-u_target  = 0.05;
-cal_devd55 = @(abarAmf) cal_devd(abarAmf,Na_target,u_target);
-[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd55,log([abar,Amf]));
-
-% THIS IS CRAZY BECAUSE WITHOUT ABAR IT MUST BE EQUAL PRODUCTIVITY ACROSS
-% SECTORS?
-%cal_devd55_Amf = @(Amf) cal_devd([-1e4 Amf],Na_target,u_target);
-%[x,fval_cal_abar0,exitflag_cal,out] = fminsearch(cal_devd55_Amf,log(Amf));
-
-%experiment with abar:
-%abar = 0.5*abar;
+for cal_iter =1:20
+	% to change the calibration target values change Na_target, u_target
+	Na_target = 0.1;
+	u_target  = 0.07;
+	Pa_target = 0.8;
+	cal_devd_fn = @(YmAmfAa) calls_devd(YmAmfAa,Na_target,u_target,Pa_target);
+	%[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd,log([abar,Amf,Aa]));
+	[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Ym_devd, Amf_devd, Aa_devd],[0,0,0],[10,10,10]);
 
 
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
-devd_logssp = logssp;
-Aa_devd = Aa;
-Amf_devd = Amf;
+	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_ss);
+	devd_logssp = logssp;
+	Aa_devd = Aa;
+	Amf_devd = Amf;
+	Ym_devd = Ym;
 
 
-%%
-% now calibrate it so that I get 90% in agriculture and 10% unemployment by
-% manipulating Aa and Amf.  I will fix abar.
+	%%
+	% now calibrate it so that I get 90% in agriculture and 10% unemployment by
+	% manipulating Aa and Amf.  I will fix abar.
 
+	Ym = 1.0;
+	abar_old = abar;
+	% to change the calibration target values change Na_target, u_target
+	Na_target = 0.67;
+	u_target  = 0.10;
+	Pa_target = 1.5;
+	cal_undevd_fn = @(AaAmabar) calls_undevd(AaAmabar,Na_target,u_target,Pa_target);
+	%[x,fval_cal,exitflag_cal,out] = fminsearch(cal_undevd9010,log([.1,Amf]));
+	[x,fval_cal2,resid2,exitflag_cal2,out2,lam2, jac2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,Amf_undevd,abar],[0,0,0],[Aa_devd,1,Ym]);
+	
 
-% to change the calibration target values change Na_target, u_target
-Na_target = 0.75;
-u_target  = 0.10;
-cal_undevd9010 = @(AaAmf) cal_undevd(AaAmf,Na_target,u_target);
-[x,fval_cal,exitflag_cal,out] = fminsearch(cal_undevd9010,log([.1,Amf]));
+	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+	wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+	[excess_undevd,undevd_economy] = sol_wcPa_ss(wcPa_ss);
 
-
-pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
-wcPa_ss = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-[excess_undevd,undevd_economy] = sol_wcPa_ss(wcPa_ss);
-
-undevd_logssp = logssp;
-Aa_undevd = Aa;
-Amf_undevd = Amf;
-
-
+	undevd_logssp = logssp;
+	Aa_undevd = Aa;
+	Amf_undevd = Amf;
+	Ym_undevd = 1.0;
+	abar_undevd = abar;
+	
+	if abs(abar -abar_old)<1e-5
+		break;
+	end
+end
 %% transition backwards 
 %  First, transition using the approximation that unemployment is the steady state.  
 %  This doesn't matter explicitly for any of the choices, just market clearing.

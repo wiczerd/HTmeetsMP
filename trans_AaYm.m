@@ -25,7 +25,7 @@ theta	= 0.72;
 Amf	= 0.5;
 mu	= 0.99;
 alpha	= 0.992;
-be	= 0.1;
+be	= 0.4;
 tau	= 0.0;
 
 
@@ -416,23 +416,32 @@ cd ~/Documents/CurrResearch/Devt/Computation
 
 
 %%
+load trans_space_lowfriction
+upath_lowfric = upath;
+mpath_lowfric = mpath;
+transpath_lowfric = trans_path;
+load trans_space_hifriction
+upath_hifric = upath;
+mpath_hifric = mpath;
+transpath_hifric = trans_path;
+
 
 figure(9);
 hh=plot([2:TT-1],mpath_hifric(1:end-1),[2:TT-1],mpath_lowfric(1:end-1));
 title('Rural -> urban rate','FontSize',14);
-set(hh,'LineWidth',2);legend('Location','South','m/N_a low frictions','m/N_a high frictions');
+set(hh,'LineWidth',2);legend('Location','South','m/N_a high frictions','m/N_a low frictions');
 set(gcf,'color','white');
 set(gca, 'YLim', [0.0 0.004]);
 set(gca, 'YTick', [0.0:0.001:0.004]);
 grid on;
 if (save_plots == 1) saveas(gca,'mtrans_compare','eps2c'); end
 
-upath_hifric = trans_path_hifric(:,2)./(1-trans_path_hifric(:,1));
+%upath_hifric = trans_path_hifric(:,2)./(1-trans_path_hifric(:,1));
 
 figure(10);
 hh=plot([1:TT],upath_hifric,[1:TT],upath_lowfric);
 title('Unemployment rate','FontSize',14);
-set(hh,'LineWidth',2);legend('Location','South','u low frictions','u high frictions');
+set(hh,'LineWidth',2);legend('Location','South','u high frictions','u low frictions');
 set(gcf,'color','white');
 grid on;
 if (save_plots == 1) saveas(gca,'utrans_compare','eps2c'); end
