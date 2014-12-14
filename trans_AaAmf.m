@@ -54,12 +54,11 @@ Amf_undevd = .5;
 for cal_iter =1:20
 	% to change the calibration target values change Na_target, u_target
 	Na_target = 0.1;
-	u_target  = 0.07;
+	u_target  = 0.06;
 	Pa_target = 0.8;
 	cal_devd_fn = @(YmAmfAa) calls_devd(YmAmfAa,Na_target,u_target,Pa_target);
 	%[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd,log([abar,Amf,Aa]));
 	[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Ym_devd, Amf_devd, Aa_devd],[0,0,0],[10,10,10]);
-
 
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 	[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
@@ -111,33 +110,46 @@ Aa = Aa_devd;
 %rate change power over 1 makes for a slow transition and less than 1 is a
 %fast transition
 
-rt_chng_pwr	= 3;
+rt_chng_pwr	= 1;
 Aa_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Aa_path		= (1-Aa_path_chng)*Aa_undevd+Aa_path_chng*Aa_devd;
+Aa_path		= (1-Aa_path_chng)*Aa_undevd_ss+Aa_path_chng*Aa_devd;
 
-rt_chng_pwr	= 3;
+rt_chng_pwr	= (Ym_devd/Ym_undevd)^(1/(TT-1));
+Ym_path		= Ym_undevd*rt_chng_pwr.^(linspace(0,TT-1,TT));
+
+rt_chng_pwr	= 1;
 Amf_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
 Amf_path	= (1-Amf_path_chng)*Amf_undevd+Amf_path_chng*Amf_devd;
 
+
+% set up storage for things computed over the path
 trans_path  = zeros(TT,size(devd_economy,2));
 excess_path = zeros(TT,2);
-price_path  = zeros(TT,2);
+uss_path = zeros(TT,1);
+utback_path= zeros(TT,1);
+% initially hold it to p0
+price_path  = p0_trans;
+trans_path(:,2) = -1; % this is an initialization that tells it to replace ut with uss.
 
-
-p0_trans = [linspace(exp(devd_logssp(2)),exp(undevd_logssp(2)),100);...
-	   linspace((atan(devd_logssp(1))+pi/2)*Ym/pi,(atan(undevd_logssp(1))+pi/2)*Ym/pi,100)]';
 
 trans_economy	= devd_economy;
 trans_path(TT,:)= trans_economy;
 
-trans_economy	= devd_economy;
-trans_path(TT,:)= trans_economy;
+trans_economy	= undevd_economy;
+trans_path(1,:)= trans_economy;
+
+trans_path_back = trans_path;
+price_path_fwd = zeros(size(price_path));
+price_path_back= zeros(size(price_path));
+solpath_back = zeros(size(price_path));
+
+Aa_implied_back = ones(TT,1)*Aa_devd;
+Aa_implied_fwd  = ones(TT,1)*Aa_devd;
 
 
-% use steady state unemployment first
-trans_path(:,2) = -1.0;
+price_path_back(TT,:) = wcPa_devd;
+price_path_fwd(TT,:) = wcPa_devd;
 
-price_path(TT,:)= p0_trans(1,:);
 
 for trans_iter =1:20
 
