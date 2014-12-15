@@ -299,7 +299,7 @@ for trans_iter =1:20
  	w0 = price_path(1,1);
  	be = be_path(1);
 	options = optimoptions('fsolve','Jacobian','off');
- 	cal_undevd_fn = @(beabar) calls_undevd_AaYm_bkwd(beabar,Pa,w0,Na_undevd_target,trans_path);
+ 	cal_undevd_fn = @(Aaabar) calls_undevd_AaYm_bkwd(Aaabar,Pa,w0,Na_undevd_target,trans_path);
  	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[Pa*1.1 abar*.9],[0 0],[10 Ym]);
 	%[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
  
