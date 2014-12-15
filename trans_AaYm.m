@@ -200,7 +200,7 @@ for trans_iter =1:20
 			%absolute level of UI replacement
 			%budget_def = be*theeconomy(2) - wcPa_ss(1)*tau*(1-theeconomy(2)-theeconomy(1));
 			%propotional UI replacement
-			budget_def = be*trans_economy(2) - *tau*(1-trans_economy(2)-trans_economy(1));
+			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)
