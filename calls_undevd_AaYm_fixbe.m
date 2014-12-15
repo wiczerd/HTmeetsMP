@@ -27,7 +27,10 @@ else
 		wcPa_ss =[(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
 		[excess,theeconomy] = sol_wcPa_ss([wcPa_ss]);
-		budget_def = be*theeconomy(2) - wcPa_ss(1)*tau*(1-theeconomy(2)-theeconomy(1));
+		%absolute level of UI replacement
+		%budget_def = be*theeconomy(2) - wcPa_ss(1)*tau*(1-theeconomy(2)-theeconomy(1));
+		%propotional UI replacement
+		budget_def = be*theeconomy(2) - tau*(1-theeconomy(2)-theeconomy(1));
 		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 			break;
 		elseif (budget_def < 0)

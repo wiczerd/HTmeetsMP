@@ -60,7 +60,7 @@ for cal_iter=1:10
 
 	% to change the calibration target values change Na_target, u_target
 	Na_devd_target = 0.1;
-	u_devd_target  = 0.07;
+	u_devd_target  = 0.040143;
 	Pa_devd_target = 0.8;
 	be = 0.4;
 	%cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
@@ -197,7 +197,10 @@ for trans_iter =1:20
 			wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
 			% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
 			[excess_trans,trans_economy] = sol_wcAa(wcAa_t,Pa,trans_path(t+1,:),trans_path(t,2));
-			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			%absolute level of UI replacement
+			%budget_def = be*theeconomy(2) - wcPa_ss(1)*tau*(1-theeconomy(2)-theeconomy(1));
+			%propotional UI replacement
+			budget_def = be*trans_economy(2) - *tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)
@@ -256,7 +259,7 @@ for trans_iter =1:20
 	%		else
 	%			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*trans_path_back(1,2)]);
 	%		end
-			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)

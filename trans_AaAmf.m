@@ -8,7 +8,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT = 400;
-save_plots =0;
+save_plots =1;
 param_update = 0.5;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -55,10 +55,10 @@ Amf_undevd = .5;
 for cal_iter =1:20
 	% to change the calibration target values change Na_target, u_target
 	Na_devd_target = 0.1;
-	u_devd_target  = 0.06;
+	u_devd_target  = 0.040143;
 	Pa_devd_target = 0.8;
 	cal_devd_fn = @(YmAmfAa) calls_devd(YmAmfAa,Na_devd_target,u_devd_target,Pa_devd_target);
-	%[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd,log([abar,Amf,Aa]));
+	
 	[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Ym_devd, Amf_devd, Aa_devd],[0,0,0],[10,10,10]);
 
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -181,7 +181,11 @@ for trans_iter =1:20
 			wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
 			% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
 			[excess_trans,trans_economy] = sol_wcAa(wcAa_t,Pa,trans_path(t+1,:),trans_path(t,2));
-			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			
+			%this has budget clearing in proprotional replacement
+			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
+			%this has budget clearing in absolute replacement
+			%budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)
@@ -237,7 +241,8 @@ for trans_iter =1:20
 
 			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 
-			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			%budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)
@@ -320,7 +325,7 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 %%
 
-cd trans_results/veryslowAa_veryslowAmf
+cd trans_AaAmf/calAa_linYmAmf
 
 if (save_plots==1) 
 	save trans_space_abar; end

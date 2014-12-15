@@ -30,7 +30,7 @@ Q	= (kappa/(Ym-wc + beta*J)/Amf)^(-1/eta);
 pQ	= Amf*Q^(1-eta);
 % solve for Ve Vu as a linear system
 flowVe	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc-cbar-Pa*abar);
-flowVu	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(be-cbar-Pa*abar);
+flowVu	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(be*wc-cbar-Pa*abar);
 
 VeVucoe	= [0, lambda;...
 	0, 0];
@@ -42,7 +42,7 @@ VeVucont =  beta*[(1-lambda)*Vep;pQ*Vep + (1-pQ)*Vup];
 VeVu	= (eye(2)- VeVucoe)\(VeVucon + VeVucont);
 
 wc_implied = ( alpha^alpha*(Pa/(1-alpha)).^(alpha-1)*...
-	( (1-theta)*be + (theta-1)*beta*(Vep - Vup) ) ...
+	( (1-theta)*be*wc + (theta-1)*beta*(Vep - Vup) ) ...
 	+ theta*(Ym + beta*Jp) )...
 	/(theta+alpha^alpha*(Pa/(1-alpha)).^(alpha-1)*(1-theta)); 
 
@@ -59,7 +59,7 @@ wR	= mu*Pa*Aa_hr*Na_supplied^(mu-1);
 
 ut	= (1-pQ)*(u_tm1 + lambda*(1-u_tm1 -Na_supplied) + (Na_tm1 - Na_supplied));
 
-a_u	= (be - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
+a_u	= (be*wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_e	= (wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_R	= (wR - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 

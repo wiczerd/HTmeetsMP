@@ -1,15 +1,14 @@
-function calresid_v = calls_devd_AaYm(AaAmfYm,Natarget,utarget,Patarget)
+function calresid_v = cal_undevd(AaAmabar,Natarget,utarget,Patarget)
 % the objective for a calibration to target Na, uss and solve for prices
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
-Aa  = (AaAmfYm(1));
-Ym = (AaAmfYm(2));
-Amf = (AaAmfYm(3));
+Aa  = AaAmabar(1);
+Amf = AaAmabar(2);
+abar = AaAmabar(3);
 options = optimset('Display','off');
 
 tau=0.0;
-%pos_solwcPa = @(logwcPa) sol_wcPa_ss(exp(logwcPa));
 
 pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 
@@ -17,7 +16,7 @@ pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 [excess,theeconomy] = sol_wcPa_ss([(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))]);
 
 if(exitflag <0)
-	calresid_v = 10;
+	calresid_v = ones(3,1)*10;
 else
 	% loop on tau
 	tauH = .1;tauL=0.;
@@ -27,10 +26,7 @@ else
 		wcPa_ss =[(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
 		[excess,theeconomy] = sol_wcPa_ss([wcPa_ss]);
-		%absolute level of UI replacement
-		%budget_def = be*theeconomy(2) - wcPa_ss(1)*tau*(1-theeconomy(2)-theeconomy(1));
-		%propotional UI replacement
-		budget_def = be*theeconomy(2) - tau*(1-theeconomy(2)-theeconomy(1));
+		budget_def = be*theeconomy(2) - wcPa_ss(1)*tau*(1-theeconomy(2)-theeconomy(1));
 		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 			break;
 		elseif (budget_def < 0)
@@ -43,7 +39,8 @@ else
 	calresid_v(1)	= Natarget - theeconomy(1);
 	calresid_v(2)	= utarget - theeconomy(2)/(1-theeconomy(1));
 	calresid_v(3)	= Patarget - wcPa_ss(2);
-	if(theeconomy(1)>=1) calresid_v(2) = 50; end%.05*(1/Amf); end
+	if(theeconomy(1)>=1-1e-5) calresid_v(2) = 50; end%.05*(1/Amf); end
 end	
 
+calresid = sum(calresid_v.^2);
 %disp(calresid_v)

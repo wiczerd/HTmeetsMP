@@ -22,7 +22,7 @@ pQ	= Amf*Q^(1-eta);
 % solve for Ve Vu as a linear system
 flowVe	= (1-lambda)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc*(1-tau) -cbar-Pa*abar);
 flowVu	= pQ*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc*(1-tau)-cbar-Pa*abar) ...
-		+ (1-pQ)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(be-cbar-Pa*abar);
+		+ (1-pQ)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(be*wc-cbar-Pa*abar);
 VeVucoe	= [(1-lambda)*beta, lambda;...
 	pQ*beta, (1-pQ)*beta];
 VeVucon	= [flowVe;flowVu];
@@ -31,7 +31,7 @@ VeVu	= (eye(2)- VeVucoe)\VeVucon;
 
 % now that I have Ve, Vu I can solve for the wage from Nash Bargaing
 wc_implied = ( alpha^alpha*(Pa/(1-alpha)).^(alpha-1)*...
-	( (1-theta)*be + (theta-1)*beta*(VeVu(1) - VeVu(2)) ) ...
+	( (1-theta)*be*wc + (theta-1)*beta*(VeVu(1) - VeVu(2)) ) ...
 	+ theta*(Ym + beta*J) )...
 	/(theta+alpha^alpha*(Pa/(1-alpha)).^(alpha-1)*(1-theta)); 
 
@@ -48,7 +48,7 @@ wR  = mu*Pa*Aa*Na_supplied^(mu-1);
 
 uss	= lambda*(1-Na_supplied)*(1-pQ)/(pQ + lambda*(1-pQ) );
 
-a_u = (be - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
+a_u = (be*wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_e = (wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_R = (wR - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 

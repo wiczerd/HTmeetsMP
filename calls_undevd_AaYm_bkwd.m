@@ -27,7 +27,7 @@ else
 		wc = (atan(tanw(1))+pi/2)*Ym/pi ;
 		
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-		budget_def = be*theeconomy(2) - wc*tau*(1-theeconomy(2)-theeconomy(1));
+		budget_def = be*theeconomy(2) - tau*(1-theeconomy(2)-theeconomy(1));
 		if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 			break;
 		elseif (budget_def < 0)
