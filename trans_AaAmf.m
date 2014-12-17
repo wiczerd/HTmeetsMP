@@ -10,6 +10,7 @@ global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 TT = 400;
 save_plots =1;
 param_update = 0.5;
+Amf_halted =1;
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
 abar	= 0.2; % this gets changed below in the calibration
@@ -126,9 +127,8 @@ Aa_path		= (1-Aa_path_chng)*Aa_undevd+Aa_path_chng*Aa_devd;
 rt_chng_pwr	= (Ym_devd/Ym_undevd)^(1/(TT-1));
 Ym_path		= Ym_undevd*rt_chng_pwr.^(linspace(0,TT-1,TT));
 
-rt_chng_pwr	= 1;
-Amf_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
-Amf_path	= (1-Amf_path_chng)*Amf_undevd+Amf_path_chng*Amf_devd;
+rt_chng_pwr	= (Amf_devd/Amf_undevd)^(1/(TT-1));
+Amf_path	= Amf_undevd*rt_chng_pwr.^(linspace(0,TT-1,TT));
 
 
 % set up storage for things computed over the path
@@ -159,6 +159,10 @@ Aa_implied_fwd  = ones(TT,1)*Aa_devd;
 price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
 
+%%
+if Amf_halted == 1;
+	Amf_path(:) = Amf_path(1);
+end	
 
 for trans_iter =1:20
 
@@ -166,7 +170,11 @@ for trans_iter =1:20
 	wcAa_t= [wcPa_devd(1) Aa_devd];
 	for t = TT-1:-1:1
 		Aa = Aa_path(t);
-		Amf = Amf_path(t);
+		if Amf_halted == 1;
+			Amf = Amf_path(1);
+		else
+			%Amf = Amf_path(t);
+		end
 		Ym = Ym_path(t);
 		logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
 		logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
@@ -220,7 +228,13 @@ for trans_iter =1:20
 	% now go forward to get quantities right
 	for t = 2:TT-1
 		Aa = Aa_path(t);
-		Amf = Amf_path(t);
+		
+		if Amf_halted == 1;
+			Amf = Amf_path(1);
+		else
+			%Amf = Amf_path(t);
+		end
+
 		Ym = Ym_path(t);
 		Pa = price_path(t,2);
 		
@@ -266,7 +280,7 @@ for trans_iter =1:20
 
 	abar_old = abar;
 	Amf_old  = Amf_path(1);
-%%	
+
 	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
 	% this makes the unemployment target
@@ -325,10 +339,14 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 %%
 
-cd trans_AaAmf/calAa_linYmAmf
+if (save_plots==1 && Amf_halted ~= 1) 
+	cd trans_AaAmf/calAa_linYmAmf
+	save trans_space_calAa_linYmAmf; 
+elseif (save_plots==1 && Amf_halted == 1) 
+	cd trans_AaAmf/calAa_linYm_haltAmf
+	save trans_space_calAa_linYm_haltAmf;
+end
 
-if (save_plots==1) 
-	save trans_space_abar; end
 upath = trans_path(:,2)./(1-trans_path(:,1));
 mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
 %
