@@ -8,20 +8,14 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau converged
 
 TT = 400;
+max_transiter = 41;
 save_plots =1;
 param_update = 0.5;
-Amf_stunted =1;
-Ym_stunted = 0;
+Amf_stunted =0;
+Ym_stunted = 1;
 Aa_stunted = 0;
 
 converged = 0;
-
-if(Amf_stunted == 1 || Ym_stunted ==1 || Aa_stunted ==1)
-	extra_trans = 1;
-else
-	extra_trans = 0;
-end
-
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
 abar	= 0.2; % this gets changed below in the calibration
@@ -172,7 +166,7 @@ price_path_fwd(TT,:) = wcPa_devd;
 
 %%
 
-for trans_iter =1:20
+for trans_iter =1:max_transiter
 
 	logwA = [devd_logssp(1) log(Aa_devd)];
 	wcAa_t= [wcPa_devd(1) Aa_devd];
@@ -323,7 +317,7 @@ for trans_iter =1:20
  	[excess_undevd,undevd_economy] = sol_wcPa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],trans_path(2,:),trans_path(1,2));
 	trans_path(1,:) = undevd_economy;
 	
- %%
+
  
 	param_resid =  abs(abar - abar_old) + abs(Amf - Amf_old);
 %	be_undevd = be_path(1);
@@ -331,7 +325,7 @@ for trans_iter =1:20
 %	be_path = param_update*be_path_implied + (1-param_update)*be_path;
 	abar = param_update*abar + (1-param_update)*abar_old;
 	
-	if ((sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6) ) 
+	if ((sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6) || trans_iter>=max_transiter-1 ) 
 		if converged == 1
 			break; 
 		end
