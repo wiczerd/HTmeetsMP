@@ -10,7 +10,18 @@ global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 TT = 400;
 save_plots =1;
 param_update = 0.5;
-Amf_halted =1;
+Amf_stunted =1;
+Ym_stunted = 0;
+Aa_stunted = 0;
+
+
+
+if(Amf_stunted == 1 || Ym_stunted ==1 || Aa_stunted ==1)
+	extra_trans = 1;
+else
+	extra_trans = 0;
+end
+
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
 abar	= 0.2; % this gets changed below in the calibration
@@ -160,7 +171,7 @@ price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
 
 %%
-if Amf_halted == 1;
+if Amf_stunted == 1;
 	Amf_path(:) = Amf_path(1);
 end	
 
@@ -170,7 +181,7 @@ for trans_iter =1:20
 	wcAa_t= [wcPa_devd(1) Aa_devd];
 	for t = TT-1:-1:1
 		Aa = Aa_path(t);
-		if Amf_halted == 1;
+		if Amf_stunted == 1;
 			Amf = Amf_path(1);
 		else
 			%Amf = Amf_path(t);
@@ -229,7 +240,7 @@ for trans_iter =1:20
 	for t = 2:TT-1
 		Aa = Aa_path(t);
 		
-		if Amf_halted == 1;
+		if Amf_stunted == 1;
 			Amf = Amf_path(1);
 		else
 			%Amf = Amf_path(t);
@@ -339,10 +350,10 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 %%
 
-if (save_plots==1 && Amf_halted ~= 1) 
+if (save_plots==1 && Amf_stunted ~= 1) 
 	cd trans_AaAmf/calAa_linYmAmf
 	save trans_space_calAa_linYmAmf; 
-elseif (save_plots==1 && Amf_halted == 1) 
+elseif (save_plots==1 && Amf_stunted == 1) 
 	cd trans_AaAmf/calAa_linYm_haltAmf
 	save trans_space_calAa_linYm_haltAmf;
 end
