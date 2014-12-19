@@ -171,9 +171,6 @@ price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
 
 %%
-if Amf_stunted == 1;
-	Amf_path(:) = Amf_path(1);
-end	
 
 for trans_iter =1:20
 
@@ -181,12 +178,14 @@ for trans_iter =1:20
 	wcAa_t= [wcPa_devd(1) Aa_devd];
 	for t = TT-1:-1:1
 		Aa = Aa_path(t);
-		if Amf_stunted == 1;
-			Amf = Amf_path(1);
-		else
-			%Amf = Amf_path(t);
-		end
+		Amf = Amf_path(t);
 		Ym = Ym_path(t);
+		if converged ==1
+			if Amf_stunted==1;	Amf= Amf_stunted_path(t);	end
+			if Aa_stunted== 1;	Aa = Aa_stunted_path(t);	end
+			if Ym_stunted== 1;	Ym = Ym_stunted_path(t);	end
+		end
+		
 		logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
 		logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
 
@@ -242,8 +241,9 @@ for trans_iter =1:20
 		Amf = Amf_path(t);
 		Ym = Ym_path(t);
 		if converged ==1
-			if Amf_stunted == 1;	Amf = Amf_path(1);	end
-			if Aa_stunted == 1;	Aa = Aa_stunted_path(1);	end
+			if Amf_stunted==1;	Amf= Amf_stunted_path(t);	end
+			if Aa_stunted== 1;	Aa = Aa_stunted_path(t);	end
+			if Ym_stunted== 1;	Ym = Ym_stunted_path(t);	end
 		end
 		
 		Pa = price_path(t,2);
@@ -348,6 +348,10 @@ for trans_iter =1:20
 	end
 
 end
+
+if Amf_stunted==1;	Amf_path=	Amf_stunted_path;	end
+if Aa_stunted== 1;	Aa_path =	Aa_stunted_path;	end
+if Ym_stunted== 1;	Ym_path =	Ym_stunted_path;	end
 
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
