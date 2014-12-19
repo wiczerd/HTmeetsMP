@@ -5,23 +5,11 @@
 
 cd ~/Documents/CurrResearch/Devt/Computation
 
-global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau converged
+global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT = 400;
-save_plots =1;
+save_plots =0;
 param_update = 0.5;
-Amf_stunted =1;
-Ym_stunted = 0;
-Aa_stunted = 0;
-
-converged = 0;
-
-if(Amf_stunted == 1 || Ym_stunted ==1 || Aa_stunted ==1)
-	extra_trans = 1;
-else
-	extra_trans = 0;
-end
-
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
 abar	= 0.2; % this gets changed below in the calibration
@@ -66,11 +54,13 @@ Amf_undevd = .5;
 % unemployment by changing abar and Amf
 for cal_iter =1:20
 	% to change the calibration target values change Na_target, u_target
+	% Can I calibrate with be instead of Ym???
+	
 	Na_devd_target = 0.1;
-	u_devd_target  = 0.040143;
+	u_devd_target  = 0.06;
 	Pa_devd_target = 0.8;
 	cal_devd_fn = @(YmAmfAa) calls_devd(YmAmfAa,Na_devd_target,u_devd_target,Pa_devd_target);
-	
+	%[x,fval_cal,exitflag_cal,out] = fminsearch(cal_devd,log([abar,Amf,Aa]));
 	[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Ym_devd, Amf_devd, Aa_devd],[0,0,0],[10,10,10]);
 
 	pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
@@ -138,8 +128,9 @@ Aa_path		= (1-Aa_path_chng)*Aa_undevd+Aa_path_chng*Aa_devd;
 rt_chng_pwr	= (Ym_devd/Ym_undevd)^(1/(TT-1));
 Ym_path		= Ym_undevd*rt_chng_pwr.^(linspace(0,TT-1,TT));
 
-rt_chng_pwr	= (Amf_devd/Amf_undevd)^(1/(TT-1));
-Amf_path	= Amf_undevd*rt_chng_pwr.^(linspace(0,TT-1,TT));
+rt_chng_pwr	= 1;
+Amf_path_chng	= linspace(0,1,TT).^rt_chng_pwr;
+Amf_path	= (1-Amf_path_chng)*Amf_undevd+Amf_path_chng*Amf_devd;
 
 
 % set up storage for things computed over the path
@@ -170,10 +161,6 @@ Aa_implied_fwd  = ones(TT,1)*Aa_devd;
 price_path_back(TT,:) = wcPa_devd;
 price_path_fwd(TT,:) = wcPa_devd;
 
-%%
-if Amf_stunted == 1;
-	Amf_path(:) = Amf_path(1);
-end	
 
 for trans_iter =1:20
 
@@ -181,11 +168,7 @@ for trans_iter =1:20
 	wcAa_t= [wcPa_devd(1) Aa_devd];
 	for t = TT-1:-1:1
 		Aa = Aa_path(t);
-		if Amf_stunted == 1;
-			Amf = Amf_path(1);
-		else
-			%Amf = Amf_path(t);
-		end
+		Amf = Amf_path(t);
 		Ym = Ym_path(t);
 		logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
 		logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
@@ -200,11 +183,7 @@ for trans_iter =1:20
 			wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
 			% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
 			[excess_trans,trans_economy] = sol_wcAa(wcAa_t,Pa,trans_path(t+1,:),trans_path(t,2));
-			
-			%this has budget clearing in proprotional replacement
-			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
-			%this has budget clearing in absolute replacement
-			%budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
+			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)
@@ -241,11 +220,6 @@ for trans_iter =1:20
 		Aa = Aa_path(t);
 		Amf = Amf_path(t);
 		Ym = Ym_path(t);
-		if converged ==1
-			if Amf_stunted == 1;	Amf = Amf_path(1);	end
-			if Aa_stunted == 1;	Aa = Aa_stunted_path(1);	end
-		end
-		
 		Pa = price_path(t,2);
 		
 		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
@@ -265,8 +239,7 @@ for trans_iter =1:20
 
 			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 
-			%budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
-			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
+			budget_def = be*trans_economy(2) - wcAa_t(1)*tau*(1-trans_economy(2)-trans_economy(1));
 			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
 				break;
 			elseif (budget_def < 0)
@@ -290,7 +263,7 @@ for trans_iter =1:20
 
 	abar_old = abar;
 	Amf_old  = Amf_path(1);
-
+%%	
 	theeconomy	= trans_path(1,:);
 	calresid(1)	= Na_undevd_target - theeconomy(1);
 	% this makes the unemployment target
@@ -330,21 +303,11 @@ for trans_iter =1:20
 %	be_path_implied = (be_devd-be_undevd)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd;
 %	be_path = param_update*be_path_implied + (1-param_update)*be_path;
 	abar = param_update*abar + (1-param_update)*abar_old;
-	
-	if ((sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6) ) 
-		if converged == 1
-			break; 
-		end
-		
-		%set up the stunted growth paths
-		tmp_growth = log(Aa_path(2:end) ./ Aa_path(1:end-1))/10;
-		Aa_stunted_path = [Aa_path(1) exp( log(Aa_path(1)) + cumsum(tmp_growth) )];
-		tmp_growth = log(Amf_path(2:end) ./ Amf_path(1:end-1))/10;
-		Amf_stunted_path = [Amf_path(1) exp( log(Amf_path(1)) + cumsum(tmp_growth) )];
-		tmp_growth = log(Ym_path(2:end) ./ Ym_path(1:end-1))/10;
-		Ym_stunted_path = [Ym_path(1) exp( log(Ym_path(1)) + cumsum(tmp_growth) )];
+	Amf_undevd = param_update*Amf+ (1-param_update)*Amf_old;
+	Amf_path	= (1-Amf_path_chng)*Amf_undevd+Amf_path_chng*Amf_devd;
 
-		converged = 1;
+	if (sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6)
+		break;
 	end
 
 end
@@ -361,20 +324,10 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 %%
 
-if (save_plots==1 && Amf_stunted ~= 1) 
-	cd trans_AaAmf/calAa_linYmAmf
-	save trans_space_calAa_linYmAmf; 
-elseif (save_plots==1 && Amf_stunted == 1) 
-	cd trans_AaAmf/calAa_linYm_haltAmf
-	save trans_space_calAa_linYm_haltAmf;
-elseif (save_plots==1 && Aa_stunted == 1) 
-	cd trans_AaAmf/calAa_linYm_haltAa
-	save trans_space_calAa_linYm_haltAa;	
-elseif (save_plots==1 && Ym_stunted == 1) 
-	cd trans_AaAmf/calAa_linAmf_haltYm
-	save trans_space_calAa_linAmf_haltYm;	
-end
+cd trans_results/veryslowAa_veryslowAmf
 
+if (save_plots==1) 
+	save trans_space_abar; end
 upath = trans_path(:,2)./(1-trans_path(:,1));
 mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
 %
