@@ -340,6 +340,7 @@ cd ~/Documents/CurrResearch/Devt/Computation
 load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf;
 	upath_calAa_linYmAmf= upath;
 	apg_calAa_linYmAmf= percaprev_pt(:,1)./percaprev_pt(:,2);
+	gdp_calAa_linYmAmf=trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path';
 	Aa_path_calAa_linYmAmf= Aa_path;
 	Amf_path_calAa_linYmAmf = Amf_path;
 	Ym_path_calAa_linYmAmf = Ym_path;
@@ -347,6 +348,7 @@ load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf;
 load trans_AaAmf/calAa_haltYm_haltAa/trans_space_calAa_haltYm_haltAa;
 	upath_calAa_haltYm_haltAa = upath;
 	apg_calAa_haltYm_haltAa = percaprev_pt(:,1)./percaprev_pt(:,2);
+	gdp_calAa_haltYm_haltAa =trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path';
 	Aa_path_calAa_haltYm_haltAa  = Aa_path;
 	Amf_path_calAa_haltYm_haltAa  = Amf_path;
 	Ym_path_calAa_haltYm_haltAa  = Ym_path;
@@ -354,6 +356,7 @@ load trans_AaAmf/calAa_haltYm_haltAa/trans_space_calAa_haltYm_haltAa;
 load trans_AaAmf/calAa_linYm_haltAa/trans_space_calAa_linYm_haltAa;
 	upath_calAa_linYm_haltAa = upath;
 	apg_calAa_linYm_haltAa = percaprev_pt(:,1)./percaprev_pt(:,2);
+	gdp_calAa_linYm_haltAa =trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path';
 	Aa_path_calAa_linYm_haltAa = Aa_path;
 	Amf_path_calAa_linYm_haltAa = Amf_path;
 	Ym_path_calAa_linYm_haltAa = Ym_path;
@@ -361,6 +364,7 @@ load trans_AaAmf/calAa_linYm_haltAa/trans_space_calAa_linYm_haltAa;
 load trans_AaAmf/calAa_linAmf_haltYm/trans_space_calAa_linAmf_haltYm;
 	upath_calAa_linAmf_haltYm = upath;
 	apg_calAa_linAmf_haltYm = percaprev_pt(:,1)./percaprev_pt(:,2);
+	gdp_calAa_linAmf_haltYm =trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path';
 	Aa_path_calAa_linAmf_haltYm = Aa_path;
 	Amf_path_calAa_linAmf_haltYm = Amf_path;
 	Ym_path_calAa_linAmf_haltYm = Ym_path;
@@ -398,3 +402,34 @@ legend('Location','NorthWest','A_a Baseline','A_a - Slow y_m','A_a - Slow A_a','
 grid on;
 if (save_plots == 1) saveas(gca,'prodpath_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'prodpath_compare.png'); end
+
+
+figure(13);
+plot(gdp_calAa_linYmAmf(1:TO),upath_calAa_linYmAmf(1:TO),'k',gdp_calAa_linAmf_haltYm(1:TO),upath_calAa_linAmf_haltYm(1:TO),'b', gdp_calAa_linYm_haltAa(1:TO), upath_calAa_linYm_haltAa(1:TO),'g',gdp_calAa_haltYm_haltAa(1:TO), upath_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
+set(gcf,'color','white');
+title('Unemployment paths');
+legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
+grid on;
+if (save_plots == 1) saveas(gca,'upath_gdp_compare','eps2c'); end
+if (save_plots == 1) saveas(gca,'upath_gdp_compare.png'); end
+
+figure(14);
+plot(gdp_calAa_linYmAmf(1:TO),apg_calAa_linYmAmf(1:TO),'k', gdp_calAa_linAmf_haltYm(1:TO),apg_calAa_linAmf_haltYm(1:TO),'b', gdp_calAa_linYm_haltAa(1:TO), apg_calAa_linYm_haltAa(1:TO),'g',gdp_calAa_haltYm_haltAa(1:TO), apg_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
+set(gcf,'color','white');
+title('Agricultural Productivity Gap, current prices');
+legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
+grid on;
+if (save_plots == 1) saveas(gca,'apgpath_gdp_compare','eps2c'); end
+if (save_plots == 1) saveas(gca,'apgpath_gdp_compare.png'); end
+
+
+figure(15);
+plot(gdp_calAa_linYmAmf(1:TO),Aa_path_calAa_linYmAmf(1:TO),'k:', gdp_calAa_linAmf_haltYm(1:TO),Aa_path_calAa_linAmf_haltYm(1:TO),'b:', gdp_calAa_linYm_haltAa(1:TO), Aa_path_calAa_linYm_haltAa(1:TO),'g:', gdp_calAa_haltYm_haltAa(1:TO), Aa_path_calAa_haltYm_haltAa(1:TO),'r:', ...
+	 gdp_calAa_linYmAmf(1:TO),Ym_path_calAa_linYmAmf(1:TO),'k-', gdp_calAa_linAmf_haltYm(1:TO),Ym_path_calAa_linAmf_haltYm(1:TO),'b-', gdp_calAa_linYm_haltAa(1:TO), Ym_path_calAa_linYm_haltAa(1:TO),'g-', gdp_calAa_haltYm_haltAa(1:TO), Ym_path_calAa_haltYm_haltAa(1:TO),'r-', ...
+	'LineWidth',2);
+set(gcf,'color','white');
+title('Agricultural Productivity Gap, current prices');
+legend('Location','SouthEast','A_a Baseline','A_a - Slow y_m','A_a - Slow A_a','A_a - Slow A_a & y_m','y_m - Baseline','y_m - Slow y_m','y_m - Slow A_a','y_m - Slow A_a & y_m');
+grid on;
+if (save_plots == 1) saveas(gca,'prodpath_gdp_compare','eps2c'); end
+if (save_plots == 1) saveas(gca,'prodpath_gdp_compare.png'); end
