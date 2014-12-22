@@ -16,6 +16,7 @@ pos_solwcPa = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_p
 if(exitflag <0)
 	calresid_v(1) = 10;
 	calresid_v(2) = 10;
+	calresid_v(3) = 10;
 else
 	% loop on tau
 	tauH = .1;tauL=0.;

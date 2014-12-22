@@ -8,11 +8,12 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau converged
 
 TT = 400;
+TT_extra = 200;
 max_transiter = 41;
 save_plots =1;
 param_update = 0.5;
 Amf_stunted =0;
-Ym_stunted = 1;
+Ym_stunted = 0;
 Aa_stunted = 0;
 
 converged = 0;
@@ -174,11 +175,7 @@ for trans_iter =1:max_transiter
 		Aa = Aa_path(t);
 		Amf = Amf_path(t);
 		Ym = Ym_path(t);
-		if converged ==1
-			if Amf_stunted==1;	Amf= Amf_stunted_path(t);	end
-			if Aa_stunted== 1;	Aa = Aa_stunted_path(t);	end
-			if Ym_stunted== 1;	Ym = Ym_stunted_path(t);	end
-		end
+
 		
 		logwA(2) = log(0.5*Aa + 0.5*exp(logwA(2)));
 		logwA(1) = tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
@@ -234,11 +231,6 @@ for trans_iter =1:max_transiter
 		Aa = Aa_path(t);
 		Amf = Amf_path(t);
 		Ym = Ym_path(t);
-		if converged ==1
-			if Amf_stunted==1;	Amf= Amf_stunted_path(t);	end
-			if Aa_stunted== 1;	Aa = Aa_stunted_path(t);	end
-			if Ym_stunted== 1;	Ym = Ym_stunted_path(t);	end
-		end
 		
 		Pa = price_path(t,2);
 		
@@ -309,7 +301,6 @@ for trans_iter =1:max_transiter
 	options = optimoptions('fsolve','Jacobian','off');
  	cal_undevd_fn = @(Aaabar) calls_undevd_AaAmf_bkwd(Aaabar,Pa,w0,Na_undevd_target,u_undevd_target,trans_path);
  	[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[Pa*1.1 abar*.9 Amf_old],[0 0 0],[10 Ym 10]);
-	%[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
  
  	%pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
  	pos_solwc = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
@@ -320,32 +311,19 @@ for trans_iter =1:max_transiter
 
  
 	param_resid =  abs(abar - abar_old) + abs(Amf - Amf_old);
-%	be_undevd = be_path(1);
-%	be_path_implied = (be_devd-be_undevd)*(Ym_path- Ym_undevd)/(Ym_devd - Ym_undevd) + be_undevd;
-%	be_path = param_update*be_path_implied + (1-param_update)*be_path;
 	abar = param_update*abar + (1-param_update)*abar_old;
 	
+	
+	% this part does one more iteration for experimentation sake
 	if ((sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6) || trans_iter>=max_transiter-1 ) 
 		if converged == 1
 			break; 
+		else
+			converged = 1;
 		end
-		
-		%set up the stunted growth paths
-		tmp_growth = log(Aa_path(2:end) ./ Aa_path(1:end-1))/10;
-		Aa_stunted_path = [Aa_path(1) exp( log(Aa_path(1)) + cumsum(tmp_growth) )];
-		tmp_growth = log(Amf_path(2:end) ./ Amf_path(1:end-1))/10;
-		Amf_stunted_path = [Amf_path(1) exp( log(Amf_path(1)) + cumsum(tmp_growth) )];
-		tmp_growth = log(Ym_path(2:end) ./ Ym_path(1:end-1))/10;
-		Ym_stunted_path = [Ym_path(1) exp( log(Ym_path(1)) + cumsum(tmp_growth) )];
-
-		converged = 1;
 	end
 
 end
-
-if Amf_stunted==1;	Amf_path=	Amf_stunted_path;	end
-if Aa_stunted== 1;	Aa_path =	Aa_stunted_path;	end
-if Ym_stunted== 1;	Ym_path =	Ym_stunted_path;	end
 
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
@@ -359,19 +337,9 @@ percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(
 
 %%
 
-if (save_plots==1 && Amf_stunted ~= 1) 
-	cd trans_AaAmf/calAa_linYmAmf
-	save trans_space_calAa_linYmAmf; 
-elseif (save_plots==1 && Amf_stunted == 1) 
-	cd trans_AaAmf/calAa_linYm_haltAmf
-	save trans_space_calAa_linYm_haltAmf;
-elseif (save_plots==1 && Aa_stunted == 1) 
-	cd trans_AaAmf/calAa_linYm_haltAa
-	save trans_space_calAa_linYm_haltAa;	
-elseif (save_plots==1 && Ym_stunted == 1) 
-	cd trans_AaAmf/calAa_linAmf_haltYm
-	save trans_space_calAa_linAmf_haltYm;	
-end
+cd trans_AaAmf/calAa_linYmAmf
+save trans_space_calAa_linYmAmf; 
+
 
 upath = trans_path(:,2)./(1-trans_path(:,1));
 mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
