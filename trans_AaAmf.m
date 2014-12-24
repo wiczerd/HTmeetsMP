@@ -327,12 +327,12 @@ end
 
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
-rev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
-percaprev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
-rev_p0 = [price_path(1,2).*Aa*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
-percaprev_p0 = [price_path(1,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
-rev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
-percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
+rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
 
 
 %%
@@ -347,21 +347,29 @@ mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
 figure(1);
 [ax,h1,h2]=plotyy([1:TT],trans_path(:,1),[1:TT],Aa_path);title('Fraction in agriculture');
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','N_a','A_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'Natrans','eps2c'); end
 
 figure(2);
 [ax,h1,h2]=plotyy([2:TT],mpath,[1:TT],Aa_path);title('Rural -> urban rate');
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','m/N_a','A_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'mtrans','eps2c'); end
 
 figure(3);
 [ax,h1,h2]=plotyy([1:TT],upath,[1:TT],Amf_path);title('Unemployment rate');
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','A_m');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'utrans','eps2c'); end
 
 figure(4);
 [ax,h1,h2]=plotyy([1:TT],Amf*trans_path(:,3).^(1-eta),[1:TT],Amf_path);title('Job finding rate');
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','A_m');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'pQtrans','eps2c'); end
 	
 figure(5);
@@ -370,22 +378,30 @@ set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','NorthEast','P_t y
 y20 = min(percaprev_pt(:,1));y2Y=max(percaprev_pt(:,1));
 y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
 set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'rev_Pt_trans','eps2c'); end
 
 figure(6);
 h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0');
 set(h,'LineWidth',2);legend('Location','North','P_0 y_a/y_m','P_0 y_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'rev_P0_trans','eps2c'); end
 
 
 figure(7);
 h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1));title('Relative Revenue Per Capita, P_T');
 set(h,'LineWidth',2);legend('Location','North','P_T y_a/y_m','P_T y_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'rev_PTT_trans','eps2c'); end
 
 figure(8);
 [ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good');
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
+set(gcf,'color','white');
+grid on;
 if (save_plots == 1) saveas(gca,'agPrice','eps2c'); end
 
 
