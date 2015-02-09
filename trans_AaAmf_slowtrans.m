@@ -347,7 +347,7 @@ load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf;
 	apg_calAa_linYmAmf= percaprev_pt(:,1)./percaprev_pt(:,2);
 	apgTT_calAa_linYmAmf= percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_linYmAmf= log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
-	relgdp_calAa_linYmAmf= gdp_calAa_linYmAmf(end)-gdp_calAa_linYmAmf;
+	relgdp_calAa_linYmAmf= (gdp_calAa_linYmAmf-gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_linYmAmf= Aa_path;
 	Amf_path_calAa_linYmAmf = Amf_path;
 	Ym_path_calAa_linYmAmf = Ym_path;
@@ -357,7 +357,7 @@ load trans_AaAmf/calAa_haltYm_haltAa/trans_space_calAa_haltYm_haltAa;
 	apg_calAa_haltYm_haltAa = percaprev_pt(:,1)./percaprev_pt(:,2);
 	apgTT_calAa_haltYm_haltAa = percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_haltYm_haltAa = log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
-	relgdp_calAa_haltYm_haltAa = gdp_calAa_linYmAmf(end)-gdp_calAa_haltYm_haltAa;
+	relgdp_calAa_haltYm_haltAa = (gdp_calAa_haltYm_haltAa-gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_haltYm_haltAa  = Aa_path;
 	Amf_path_calAa_haltYm_haltAa  = Amf_path;
 	Ym_path_calAa_haltYm_haltAa  = Ym_path;
@@ -367,7 +367,7 @@ load trans_AaAmf/calAa_linYm_haltAa/trans_space_calAa_linYm_haltAa;
 	apg_calAa_linYm_haltAa = percaprev_pt(:,1)./percaprev_pt(:,2);
 	apgTT_calAa_linYm_haltAa = percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_linYm_haltAa = log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
-	relgdp_calAa_linYm_haltAa = gdp_calAa_linYmAmf(end)-gdp_calAa_linYm_haltAa ;
+	relgdp_calAa_linYm_haltAa = (gdp_calAa_linYm_haltAa - gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_linYm_haltAa = Aa_path;
 	Amf_path_calAa_linYm_haltAa = Amf_path;
 	Ym_path_calAa_linYm_haltAa = Ym_path;
@@ -377,12 +377,12 @@ load trans_AaAmf/calAa_linAmf_haltYm/trans_space_calAa_linAmf_haltYm;
 	apg_calAa_linAmf_haltYm = percaprev_pt(:,1)./percaprev_pt(:,2);
 	apgTT_calAa_linAmf_haltYm = percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_linAmf_haltYm = log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
-	relgdp_calAa_linAmf_haltYm = gdp_calAa_linYmAmf(end)-gdp_calAa_linAmf_haltYm;
+	relgdp_calAa_linAmf_haltYm = (gdp_calAa_linAmf_haltYm-gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_linAmf_haltYm = Aa_path;
 	Amf_path_calAa_linAmf_haltYm = Amf_path;
 	Ym_path_calAa_linAmf_haltYm = Ym_path;
 
-
+save_plots=1;
 TO = TT- TT_extra;
 figure(10);
 plot([1:TO],upath_calAa_linYmAmf(1:TO),'k',[1:TO],upath_calAa_linAmf_haltYm(1:TO),'b', [1:TO], upath_calAa_linYm_haltAa(1:TO),'g',[1:TO], upath_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
@@ -425,39 +425,39 @@ if (save_plots == 1) saveas(gca,'prodpath_compare.png'); end
 
 
 figure(13);
-plot(gdp_calAa_linYmAmf(1:TO),upath_calAa_linYmAmf(1:TO),'k',gdp_calAa_linAmf_haltYm(1:TO),upath_calAa_linAmf_haltYm(1:TO),'b', gdp_calAa_linYm_haltAa(1:TO), upath_calAa_linYm_haltAa(1:TO),'g',gdp_calAa_haltYm_haltAa(1:TO), upath_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
+plot(relgdp_calAa_linYmAmf(1:TO),upath_calAa_linYmAmf(1:TO),'k',relgdp_calAa_linAmf_haltYm(1:TO),upath_calAa_linAmf_haltYm(1:TO),'b', relgdp_calAa_linYm_haltAa(1:TO), upath_calAa_linYm_haltAa(1:TO),'g',relgdp_calAa_haltYm_haltAa(1:TO), upath_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
 set(gcf,'color','white');
-title('Unemployment paths');
+title('Unemployment paths');xlabel('log GDP, deviation from devd');
 legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
 if (save_plots == 1) saveas(gca,'upath_gdp_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'upath_gdp_compare.png'); end
 
 figure(14);
-plot(gdp_calAa_linYmAmf(1:TO),apg_calAa_linYmAmf(1:TO),'k', gdp_calAa_linAmf_haltYm(1:TO),apg_calAa_linAmf_haltYm(1:TO),'b', gdp_calAa_linYm_haltAa(1:TO), apg_calAa_linYm_haltAa(1:TO),'g',gdp_calAa_haltYm_haltAa(1:TO), apg_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
+plot(relgdp_calAa_linYmAmf(1:TO),apg_calAa_linYmAmf(1:TO),'k', relgdp_calAa_linAmf_haltYm(1:TO),apg_calAa_linAmf_haltYm(1:TO),'b', relgdp_calAa_linYm_haltAa(1:TO), apg_calAa_linYm_haltAa(1:TO),'g',relgdp_calAa_haltYm_haltAa(1:TO), apg_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
 set(gcf,'color','white');
-title('Agricultural Productivity Gap, current prices');
-legend('Location','NorthWest','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
+title('Agricultural Productivity Gap, current prices');xlabel('log GDP, deviation from devd');
+legend('Location','SouthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
 if (save_plots == 1) saveas(gca,'apgpath_gdp_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'apgpath_gdp_compare.png'); end
 
 figure(15);
-plot(gdp_calAa_linYmAmf(1:TO),apgTT_calAa_linYmAmf(1:TO),'k', gdp_calAa_linAmf_haltYm(1:TO),apgTT_calAa_linAmf_haltYm(1:TO),'b', gdp_calAa_linYm_haltAa(1:TO), apgTT_calAa_linYm_haltAa(1:TO),'g',gdp_calAa_haltYm_haltAa(1:TO), apgTT_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
+plot(relgdp_calAa_linYmAmf(1:TO),apgTT_calAa_linYmAmf(1:TO),'k', relgdp_calAa_linAmf_haltYm(1:TO),apgTT_calAa_linAmf_haltYm(1:TO),'b', relgdp_calAa_linYm_haltAa(1:TO), apgTT_calAa_linYm_haltAa(1:TO),'g',relgdp_calAa_haltYm_haltAa(1:TO), apgTT_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
 set(gcf,'color','white');
-title('Agricultural Productivity Gap, Devd prices');
-legend('Location','NorthWest','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
+title('Agricultural Productivity Gap, Devd prices');xlabel('log GDP, deviation from devd');
+legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
 if (save_plots == 1) saveas(gca,'apgDevpath_gdp_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'apgDevpath_gdp_compare.png'); end
 
 
 figure(16);
-plot(gdp_calAa_linYmAmf(1:TO),Aa_path_calAa_linYmAmf(1:TO),'k:', gdp_calAa_linAmf_haltYm(1:TO),Aa_path_calAa_linAmf_haltYm(1:TO),'b:', gdp_calAa_linYm_haltAa(1:TO), Aa_path_calAa_linYm_haltAa(1:TO),'g:', gdp_calAa_haltYm_haltAa(1:TO), Aa_path_calAa_haltYm_haltAa(1:TO),'r:', ...
-	 gdp_calAa_linYmAmf(1:TO),Ym_path_calAa_linYmAmf(1:TO),'k-', gdp_calAa_linAmf_haltYm(1:TO),Ym_path_calAa_linAmf_haltYm(1:TO),'b-', gdp_calAa_linYm_haltAa(1:TO), Ym_path_calAa_linYm_haltAa(1:TO),'g-', gdp_calAa_haltYm_haltAa(1:TO), Ym_path_calAa_haltYm_haltAa(1:TO),'r-', ...
+plot(relgdp_calAa_linYmAmf(1:TO),Aa_path_calAa_linYmAmf(1:TO),'k:', relgdp_calAa_linAmf_haltYm(1:TO),Aa_path_calAa_linAmf_haltYm(1:TO),'b:', relgdp_calAa_linYm_haltAa(1:TO), Aa_path_calAa_linYm_haltAa(1:TO),'g:', relgdp_calAa_haltYm_haltAa(1:TO), Aa_path_calAa_haltYm_haltAa(1:TO),'r:', ...
+	 relgdp_calAa_linYmAmf(1:TO),Ym_path_calAa_linYmAmf(1:TO),'k-', relgdp_calAa_linAmf_haltYm(1:TO),Ym_path_calAa_linAmf_haltYm(1:TO),'b-', relgdp_calAa_linYm_haltAa(1:TO), Ym_path_calAa_linYm_haltAa(1:TO),'g-', relgdp_calAa_haltYm_haltAa(1:TO), Ym_path_calAa_haltYm_haltAa(1:TO),'r-', ...
 	'LineWidth',2);
 set(gcf,'color','white');
-title('Productivity Paths');
+title('Productivity Paths');xlabel('log GDP, deviation from devd');
 legend('Location','SouthEast','A_a Baseline','A_a - Slow y_m','A_a - Slow A_a','A_a - Slow A_a & y_m','y_m - Baseline','y_m - Slow y_m','y_m - Slow A_a','y_m - Slow A_a & y_m');
 grid on;
 if (save_plots == 1) saveas(gca,'prodpath_gdp_compare','eps2c'); end

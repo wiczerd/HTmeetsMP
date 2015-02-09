@@ -29,7 +29,34 @@ be	= 0.4;
 tau	= 0.0;
 
 %import the price sequence from Alvarez-Cuadrado & Poschke:
+%USA_agprod = dlmread('USA_agprod.csv');
+%Pa_USA_anual_smth = USA_agprod(:,1);
+%Pa_USA_qtr_smth = interp1(USA_agprod(:,3)-1800,Pa_USA_anual_smth,0:0.25:150);
+%Pa_USA_qtr_smth = Pa_USA_qtr_smth(1:end-1)';
+ts_data = dir('*_agprod.csv');
+Ncountry = size(ts_data,1);
+cname = cell(Ncountry,1);
+c_Pa = zeros(151,Ncountry);
+c_time = zeros(151,Ncountry);
 
+for ci = 1:Ncountry
+	cname(ci) = cellstr(strtok(ts_data(ci).name,'_'));
+	fid = fopen(ts_data(ci).name);
+	for li = 1:151
+		c_agprod_l = fgetl(fid);
+		mis = strsplit(c_agprod_l,' ');
+		mis0= sscanf(char(mis(end)),'%d');
+		mis1= sscanf(char(mis(end-1)),'%f');
+		mis2= sscanf(char(mis(end-2)),'%f');
+		if(~isempty(mis1) && ~isempty(mis2))
+			
+			c_Pa(li,ci) = mis2;
+			c_time(li,ci) = mis0;
+		end
+	end
+	
+	
+end
 
 % util = @(c,a) (c-cbar).^alpha.*(a-abar).^(1-alpha);
 % 
@@ -63,7 +90,7 @@ for cal_iter=1:10
 	% to change the calibration target values change Na_target, u_target
 	Na_devd_target = 0.1;
 	u_devd_target  = 0.040143;
-	Pa_devd_target = 0.8;
+	Pa_devd_target = mean(Pa_USA_qtr_smth(end-20:end));
 	be = 0.4;
 	%cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
 	%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
@@ -99,8 +126,7 @@ for cal_iter=1:10
 	% to change the calibration target values change Na_target, u_target,
 	% Pa_target
 	Na_undevd_target = 0.67;
-	% NO LONGER TARGETING: u_undevd_target  = 0.07;
-	Pa_undevd_target = 1.5;
+	Pa_undevd_target = mean(Pa_USA_qtr_smth(1:20));
 
 %	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
 %	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
@@ -129,7 +155,7 @@ undevd_economy = undevd_ss_economy;
 undevd_logssp = undevd_ss_logssp;
 p0_trans = [linspace((atan(undevd_logssp(1))+pi/2)*Ym/pi,(atan(devd_logssp(1))+pi/2)*Ym/pi,TT);...
 	   linspace(exp(undevd_logssp(2)),exp(devd_logssp (2)),TT)]';
-
+p0_trans(:,2) = Pa_USA_qtr_smth;
 
 %% transition backwards 
 %  First, transition using the approximation that unemployment is the steady state.  
@@ -334,18 +360,19 @@ end
 
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
-rev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
-percaprev_pt = [price_path(:,2).*Aa.*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
-rev_p0 = [price_path(1,2).*Aa*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
-percaprev_p0 = [price_path(1,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
-rev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^mu Ym*ones(TT,1)];  % ag,man
-percaprev_pTT = [price_path(TT,2).*Aa*trans_path(:,1).^(mu-1) Ym./(1-trans_path(:,1))];  % ag,man
+rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+% this is using the TT period prices: fully developed
+rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
 
 
 %%
-cd trans_AaYm_results/calAa_linYm
+cd trans_AaYm_results/calAa_datPa_linYm
 
-save trans_space_lowfriction
+save trans_space
 
 %%
 upath = trans_path(:,2)./(1-trans_path(:,1));
@@ -357,8 +384,15 @@ figure(1);
 [ax,h1,h2]=plotyy([1:TT],trans_path(:,1),[1:TT],Aa_path);title('Fraction in agriculture','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','N_a','A_a');
 set(gcf,'color','white');
+set(ax(1), 'YLim', [0.0 1.0]);
+set(ax(1), 'YTick', [0.0:0.2:1.0]);
+set(ax(2), 'YLim', [0.0 5.0]);
+set(ax(2), 'YTick', [0.0:1:5.0]);
 grid on;
-if (save_plots == 1) saveas(gca,'Natrans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'Natrans','eps2c');
+	saveas(gca,'Natrans.png'); 
+end
 
 figure(2);
 [ax,h1,h2]=plotyy([2:TT],mpath,[1:TT],Aa_path);title('Rural -> urban rate','FontSize',14);
@@ -368,21 +402,30 @@ set(gcf,'color','white');
 set(ax(1), 'YLim', [0.0 0.01]);
 set(ax(1), 'YTick', [0.0:0.002:0.01]);
 grid on;
-if (save_plots == 1) saveas(gca,'mtrans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'mtrans','eps2c'); 
+	saveas(gca,'mtrans.png'); 
+end
 
 figure(3);
 [ax,h1,h2]=plotyy([1:TT],upath,[1:TT],Ym_path);title('Unemployment rate','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','Y_m');
 set(gcf,'color','white');
 grid on;
-if (save_plots == 1) saveas(gca,'utrans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'utrans','eps2c'); 
+	saveas(gca,'utrans.png'); 
+end
 
 figure(4);
 [ax,h1,h2]=plotyy([1:TT],Amf*trans_path(:,3).^(1-eta),[1:TT],Ym_path);title('Job finding rate','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','Y_m');
 set(gcf,'color','white');
 grid on;
-if (save_plots == 1) saveas(gca,'pQtrans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'pQtrans','eps2c'); 
+	saveas(gca,'pQtrans.png'); 
+end
 	
 figure(5);
 [ax,h1,h2]=plotyy([1:TT],percaprev_pt(:,1)./percaprev_pt(:,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t','FontSize',14);
@@ -392,14 +435,20 @@ y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));y1Y=max(percaprev_pt(:,1)./perca
 set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
 set(gcf,'color','white');
 grid on;
-if (save_plots == 1) saveas(gca,'rev_Pt_trans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'rev_Pt_trans','eps2c'); 
+	saveas(gca,'rev_Pt_trans.png'); 	
+end
 
 figure(6);
 h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0','FontSize',14);
 set(h,'LineWidth',2);legend('Location','North','P_0 y_a/y_m','P_0 y_a');
 set(gcf,'color','white');
 grid on;
-if (save_plots == 1) saveas(gca,'rev_P0_trans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'rev_P0_trans','eps2c'); 
+	saveas(gca,'rev_P0_trans.png'); 
+end
 
 
 figure(7);
@@ -407,48 +456,27 @@ h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1)
 set(h,'LineWidth',2);legend('Location','North','P_T y_a/y_m','P_T y_a');
 set(gcf,'color','white');
 grid on;
-if (save_plots == 1) saveas(gca,'rev_PTT_trans','eps2c'); end
+if (save_plots == 1) 
+	saveas(gca,'rev_PTT_trans','eps2c'); 
+	saveas(gca,'rev_PTT_trans.png'); 
+end
 
 figure(8);
 [ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good','FontSize',14);
 set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
 set(gcf,'color','white');
 grid on;
-if (save_plots == 1) saveas(gca,'agPrice','eps2c'); end
+set(ax(1), 'YLim', [0.8 1.8]);
+set(ax(1), 'YTick', [0.8:0.2:1.8]);
+set(ax(2), 'YLim', [0.0 5.0]);
+set(ax(2), 'YTick', [0.0:1:5.0]);
+if (save_plots == 1) 
+	saveas(gca,'agPrice','eps2c'); 
+	saveas(gca,'agPrice.png');
+end
 
 %%
 cd ~/Documents/CurrResearch/Devt/Computation
 
-
-%%
-load trans_space_lowfriction
-upath_lowfric = upath;
-mpath_lowfric = mpath;
-transpath_lowfric = trans_path;
-load trans_space_hifriction
-upath_hifric = upath;
-mpath_hifric = mpath;
-transpath_hifric = trans_path;
-
-
-figure(9);
-hh=plot([2:TT-1],mpath_hifric(1:end-1),[2:TT-1],mpath_lowfric(1:end-1));
-title('Rural -> urban rate','FontSize',14);
-set(hh,'LineWidth',2);legend('Location','South','m/N_a high frictions','m/N_a low frictions');
-set(gcf,'color','white');
-set(gca, 'YLim', [0.0 0.004]);
-set(gca, 'YTick', [0.0:0.001:0.004]);
-grid on;
-if (save_plots == 1) saveas(gca,'mtrans_compare','eps2c'); end
-
-%upath_hifric = trans_path_hifric(:,2)./(1-trans_path_hifric(:,1));
-
-figure(10);
-hh=plot([1:TT],upath_hifric,[1:TT],upath_lowfric);
-title('Unemployment rate','FontSize',14);
-set(hh,'LineWidth',2);legend('Location','South','u high frictions','u low frictions');
-set(gcf,'color','white');
-grid on;
-if (save_plots == 1) saveas(gca,'utrans_compare','eps2c'); end
 
 
