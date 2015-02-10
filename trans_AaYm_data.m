@@ -59,10 +59,10 @@ for ci = 1:Ncountry
 	nyr = sum(indic_data);
 	yr0 = min(c_time(indic_data,ci));
 	Pa_qtr = interp1(c_time(indic_data,ci)-yr0,...
-						c_Pa(indic_data,ci), 0:0.25:nyr);
+						c_Pa(indic_data,ci), 0:0.25:nyr-1);
 	Pa_qtr = Pa_qtr(1:end-1);
 	c_nqtr(ci) = size(Pa_qtr,2);
-	c_Pa_qtr(1:nqtr,c_nqtr(ci)) = Pa_qtr';
+	c_Pa_qtr(1:c_nqtr(ci),ci) = Pa_qtr';
 end
 
 % util = @(c,a) (c-cbar).^alpha.*(a-abar).^(1-alpha);
@@ -109,7 +109,8 @@ for ci = 1:Ncountry
 		else %the USA case
 			u_devd_target  = 0.0426; %(3.8+5.9+5.3+3.3+3.0)/5
 		end
-		Pa_devd_target = mean(Pa_USA_qtr_smth(end-20:end));
+		%Pa_devd_target = mean(Pa_USA_qtr_smth(end-20:end));
+		Pa_devd_target = mean(c_Pa_qtr(TT-20:TT,ci));
 		be = 0.4;
 		%cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
 		%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
@@ -145,7 +146,7 @@ for ci = 1:Ncountry
 		% to change the calibration target values change Na_target, u_target,
 		% Pa_target
 		Na_undevd_target = 0.67;
-		Pa_undevd_target = mean(Pa_USA_qtr_smth(1:20));
+		Pa_undevd_target = mean(c_Pa_qtr(1:20,ci));
 
 	%	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
 	%	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
@@ -174,7 +175,7 @@ for ci = 1:Ncountry
 	undevd_logssp = undevd_ss_logssp;
 	p0_trans = [linspace((atan(undevd_logssp(1))+pi/2)*Ym/pi,(atan(devd_logssp(1))+pi/2)*Ym/pi,TT);...
 		   linspace(exp(undevd_logssp(2)),exp(devd_logssp (2)),TT)]';
-	p0_trans(:,2) = c_Pa_qtr(:,ci);
+	p0_trans(1:TT,2) = c_Pa_qtr(1:TT,ci);
 
 	%% transition backwards 
 	%  First, transition using the approximation that unemployment is the steady state.  
