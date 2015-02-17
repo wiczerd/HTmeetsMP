@@ -122,7 +122,7 @@ end
 
  	
 %% calibrate it for country ci
-ci = 4;
+ci = 1;
 %for ci = 1:Ncountry
 	TT = c_nqtr(ci);
 
@@ -132,7 +132,7 @@ ci = 4;
 	be_undevd_ss = be;
 	Aa_devd   = 5;
 	Ym_devd   = 1.;
-
+	Amf_devd  = Amf;
 
 	for cal_iter=1:10
 
@@ -520,6 +520,10 @@ ci = 4;
 	[ax,h1,h2]=plotyy([1:TT],upath,[1:TT],Ym_path);title('Unemployment rate','FontSize',14);
 	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','Y_m');
 	set(gcf,'color','white');
+	set(ax(1), 'YLim', [0.0 0.2]);
+	set(ax(1), 'YTick', [0.0:0.05:0.2]);
+	set(ax(2), 'YLim', [0.0 10.0]);
+	set(ax(2), 'YTick', [0.0:2.5:10.0]);
 	grid on;
 	if (save_plots == 1) 
 		saveas(gca,'utrans','eps2c'); 
@@ -538,10 +542,15 @@ ci = 4;
 
 	figure(5);
 	[ax,h1,h2]=plotyy([1:TT],percaprev_pt(:,1)./percaprev_pt(:,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t','FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','NorthEast','P_t y_a/y_m','P_t y_a');
-	y20 = min(percaprev_pt(:,1));y2Y=max(percaprev_pt(:,1));
-	y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
-	set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
+	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','South','P_t y_a/y_m','P_t y_a');
+	y20 = min(percaprev_pt(:,1));
+	y2Y=max(percaprev_pt(:,1));
+	y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));
+	y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
+	set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );
+	set(ax(1),'YLim', round(([0 6]*(y1Y-y10)/6 +y10)*100)/100 );
+	set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
+	set(ax(2),'YLim',round(([0 6]*(y2Y-y20)/6 +y20)*100)/100);
 	set(gcf,'color','white');
 	grid on;
 	if (save_plots == 1) 
@@ -575,15 +584,31 @@ ci = 4;
 	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
 	set(gcf,'color','white');
 	grid on;
-	set(ax(1), 'YLim', [0.8 1.8]);
-	set(ax(1), 'YTick', [0.8:0.2:1.8]);
-	set(ax(2), 'YLim', [0.0 5.0]);
-	set(ax(2), 'YTick', [0.0:1:5.0]);
+	set(ax(1), 'YLim', [0.5 1.3]);
+	set(ax(1), 'YTick', [0.5:0.1:1.3]);
+	set(ax(2), 'YLim', [1.0 9.0]);
+	set(ax(2), 'YTick', [1.0:1:9.0]);
 	if (save_plots == 1) 
 		saveas(gca,'agPrice','eps2c'); 
 		saveas(gca,'agPrice.png');
 	end
 
+	figure(9);
+	[ax,h1,h2]=plotyy([1:TT],1./price_path(:,2),[1:TT],Ym_path./Aa_path);title('APG  and Rel. Price (a la Alvarez-Cuadrado & Poschke)','FontSize',14);
+	set(h1,'LineWidth',2);set(h2,'LineWidth',2,'color','r');legend('Location','North','1/P_t','y_m/A_a');
+	set(gcf,'color','white');
+	grid on;
+	set(ax(1), 'YLim', [0.8 1.6]);
+	set(ax(1), 'YTick', [0.8:0.2:1.6]);
+	set(ax(2), 'YLim', [0.6 1.4]);
+	set(ax(2), 'YTick', [0.6:0.2:1.4]);
+	set(ax(2),'ycolor','r') ;
+	if (save_plots == 1) 
+		saveas(gca,'agPrice_APG','eps2c'); 
+		saveas(gca,'agPrice_APG.png');
+	end
+
+	
 	%%
 	cd ~/Documents/CurrResearch/Devt/Computation
 
