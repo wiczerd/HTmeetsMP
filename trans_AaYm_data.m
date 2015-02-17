@@ -8,12 +8,14 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT = 150*4;
-save_plots =1;
-param_update = 1.0;
+save_plots =1; %save the plots?
+data_plots =0; %plot the data?
+param_update = .75;
 
+optsoff = optimset('Display','off');
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
-abar	= 0.2; % this gets changed below in the calibration
+abar	= 0.4; % this gets changed below in the calibration
 Aa	= 1.0;
 beta	= 0.99;
 eta	= 0.72;
@@ -51,7 +53,7 @@ for ci = 1:Ncountry
 		mis2= sscanf(char(mis(end-2)),'%f');
 		if(~isempty(mis1) && ~isempty(mis2))
 			
-			c_Pa(li,ci) = mis2;
+			c_Pa(li,ci) = 1/mis2;
 			c_time(li,ci) = mis0;
 		end
 	end
@@ -63,8 +65,49 @@ for ci = 1:Ncountry
 	Pa_qtr = Pa_qtr(1:end-1);
 	c_nqtr(ci) = size(Pa_qtr,2);
 	c_Pa_qtr(1:c_nqtr(ci),ci) = Pa_qtr';
+	
+	if(data_plots ==1)
+		h=plot(c_time(indic_data,ci),c_Pa(indic_data,ci) );
+		title(['Relative Price of Agricultural Goods, ' c_name{ci}],'FontSize',14);
+		set(h,'LineWidth',2);
+		set(gcf,'color','white');
+		grid on;
+		if save_plots==1
+			saveas(gca,['relprice_' c_name{ci} '.eps'],'eps2c');
+			saveas(gca,['relprice_' c_name{ci} '.png']); 
+		end
+	end
 end
 
+%Gollin data
+apg_gol = zeros(7,2,4);
+% Canada
+apg_gol(:,1,1) = [1925 1930 1940 1950 1960 1970 1980];
+apg_gol(:,2,1) = [0.401514604 0.2843524543 0.400050586 0.579004329 0.462501694 0.7100280823 0.5554019619];
+% Germany
+apg_gol(:,1,2) = [1880 1895 1905 1925 1930 1935 1950];
+apg_gol(:,2,2) = [0.640965982 0.676163922 0.6023711007 0.4340359094 0.6120689655 0.5435361042 0.4824311491];
+%UK
+apg_gol(:,1,3) = [1840 1850 1860 1870 1880 1890 1900];
+apg_gol(:,2,3) = [0.9838880449 0.9413651571 0.9456268448 0.9776863002 0.8134439608 0.8228239608 0.7137124952];
+%US
+apg_gol(:,1,4) = [1869 1879 1899 1907 1918 1926 1950];
+apg_gol(:,2,4) = [0.3054335851 0.2451210583 0.3804705773 0.5510643855 0.7142943069 0.4829975482 0.5763560775];
+
+for ci=1:Ncountry
+	indic_data = c_time(:,ci)>0;
+	if(data_plots ==1)
+		h=plot(c_time(indic_data,ci),c_Pa(indic_data,ci),apg_gol(:,1,ci),apg_gol(:,2,ci));
+		title(['APG,' c_name{ci}],'FontSize',14);legend('Location','SouthWest','P_t','APG');
+		set(h,'LineWidth',2);
+		set(gcf,'color','white');
+		grid on;
+		if save_plots==1
+			saveas(gca,['relprice_golprod_' c_name{ci} '.eps'],'eps2c');
+			saveas(gca,['relprice_golprod_' c_name{ci} '.png']); 
+		end
+	end
+end
 % util = @(c,a) (c-cbar).^alpha.*(a-abar).^(1-alpha);
 % 
 % utilc = @(c,a) alpha*((a-abar)./(c-cbar)).^(1-alpha);
@@ -79,14 +122,14 @@ end
 
  	
 %% calibrate it for country ci
-
-for ci = 1:Ncountry
+ci = 4;
+%for ci = 1:Ncountry
 	TT = c_nqtr(ci);
 
 	% initial guesses:
-	Aa_undevd = .5;
+	Aa_undevd_ss = .5;
 	Ym_undevd = 1.;
-	be_undevd_ss = be/4;
+	be_undevd_ss = be;
 	Aa_devd   = 5;
 	Ym_devd   = 1.;
 
@@ -111,24 +154,36 @@ for ci = 1:Ncountry
 		end
 		%Pa_devd_target = mean(Pa_USA_qtr_smth(end-20:end));
 		Pa_devd_target = mean(c_Pa_qtr(TT-20:TT,ci));
-		be = 0.4;
+		
+		Amf_old = Amf;
 		%cal_devd_fn = @(AaAmfYm) cal_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
 		%[x,fval_cal1,exitflag_cal1,out1] = fminsearch(cal_devd_fn,log([Aa_devd, Ym_devd, Amf]));
-
+		
 		cal_devd_fn = @(AaAmfYm) calls_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
-		[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Aa_devd, Ym_devd, Amf],[0,0,0],[10,10,10]);
-
+		[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Aa_devd, Ym_devd, Amf_devd],[0,0,0],[20,20,10],optsoff);
+		if exitflag_cal1<1
+			disp(exitflag_cal1)
+			disp(fval_cal1)
+		end
+			
+		Amf = param_update*Amf +(1-param_update)*Amf_old; 
 
 		pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)],optsoff);
 		wcPa_devd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_devd);
 		devd_logssp = logssp;
 
+		if exitflag<1
+			disp(exitflag);
+			disp(fval);
+		end
+		
 		be_devd = be;
 		Aa_devd = Aa;
 		Ym_devd  = Ym;
-
+		Amf_devd = Amf;
+		
 		%%
 
 		% for developing calibrate it to Na_target in agriculture, Pa_target as 
@@ -151,16 +206,26 @@ for ci = 1:Ncountry
 	%	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
 	%	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
 		cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm_fixbe(abarAaYm,Na_undevd_target,Pa_undevd_target);
-		[x,fval_cal2,resid2,exitflag_cal2,out2,lam2, jac2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,abar],[0,0],[10,Ym]);
-
-
+		[x,fval_cal2,resid2,exitflag_cal2,out2,lam2, jac2] = lsqnonlin(cal_undevd_fn,[Aa_undevd_ss,abar],[0,0],[10,Ym],optsoff);
+		if exitflag_cal2<1
+			disp(exitflag_cal2)
+			disp(fval_cal2)
+		end
+		abar = abar*param_update + (1-param_update)*abar_old;
+		
 		pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)]);
+		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)],optsoff);
 		wcPa_undevd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
 		[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_undevd);
 
+		if exitflag<1
+			disp(exitflag);
+			disp(fval);
+		end
+		
 		undevd_ss_logssp = logssp;
 		Aa_undevd_ss = Aa;
+		Aa_undevd = Aa_undevd_ss;
 		be_undevd_ss = be;
 
 		if abs(abar -abar_old)<1e-3
@@ -182,7 +247,7 @@ for ci = 1:Ncountry
 	%  This doesn't matter explicitly for any of the choices, just market clearing.
 
 	Aa = Aa_devd;
-
+	
 	%Here is where you can change the rate of change of the two paths, making
 	%rate change power over 1 makes for a slow transition and less than 1 is a
 	%fast transition
@@ -203,6 +268,9 @@ for ci = 1:Ncountry
 	excess_path = zeros(TT,2);
 	uss_path = zeros(TT,1);
 	utback_path= zeros(TT,1);
+	tau_path = zeros(TT,1);
+	bad_periods = zeros(TT,1);
+
 	% initially hold it to p0
 	price_path  = p0_trans;
 	trans_path(:,2) = -1; % this is an initialization that tells it to replace ut with uss.
@@ -218,7 +286,7 @@ for ci = 1:Ncountry
 	price_path_fwd = zeros(size(price_path));
 	price_path_back= zeros(size(price_path));
 	solpath_back = zeros(size(price_path));
-
+	solpath_fwd= zeros(size(price_path));
 	Aa_implied_back = ones(TT,1)*Aa_devd;
 	Aa_implied_fwd  = ones(TT,1)*Aa_devd;
 
@@ -242,6 +310,11 @@ for ci = 1:Ncountry
 				tau = 0.5*tauH+0.5*tauL;
 				p0 = logwA;
 				[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
+				if exitflag<1 %try with a new starting point
+					p0 = solpath_back(t+1,:);
+					[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
+				end
+				
 				wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
 				% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
 				[excess_trans,trans_economy] = sol_wcAa(wcAa_t,Pa,trans_path(t+1,:),trans_path(t,2));
@@ -257,10 +330,19 @@ for ci = 1:Ncountry
 					tauL=tau;
 				end
 			end
+			if trans_economy(1) >= 1. || excess_trans*excess_trans' >1e-4;
+				trans_economy = trans_path_back(t+1,:);
+				bad_periods(t) = 1;
+				solpath_back(t,:) = solpath_back(t+1,:);
+			else
+				% this is the guess for the path forward
+				solpath_back(t,:) = logwA;
+			end
+			tau_path(t) = tau;
 			trans_path_back(t,:) = trans_economy;
 			trans_path(t,:) = trans_economy;
 			excess_path(t,:)= excess_trans;
-			solpath_back(t,:) = logwA;
+			
 			price_path_back(t,:) = [wcAa_t(1) Pa];
 			Aa_implied_back(t) = wcAa_t(2);
 			pQ	= Amf*trans_economy(3)^(1-eta);
@@ -284,38 +366,43 @@ for ci = 1:Ncountry
 			Ym = Ym_path(t);
 			be = be_path(t);
 			Pa = price_path(t,2);
-		%	if t>2
-				pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
-		%	else
-		%		pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),[Na_undevd_target,trans_path_back(1,2)*(1-Na_undevd_target)]);
-		%	end
-			tauH = 0.05; tauL=0.001;
-			for itertau = 1:100
-				tau = 0.5*tauH+0.5*tauL;
 
+			pos_solwcAa = @(wcAa) sol_wcAa_fwd([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa,trans_path(t+1,:),trans_path(t-1,1:2));
+			tauH = 0.05; tauL=0.001;
+			%for itertau = 1:100
+			%	tau = 0.5*tauH+0.5*tauL;
+
+				tau = tau_path(t);
+			
 				p0 = solpath_back(t,:); 
 				[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
 				wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
-				% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-				if(exitflag<=0)
+				if(exitflag<=0) % try again with a different starting point
+					p0 = solpath_fwd(t-1,:); 
+					[logwA, fval,exitflag,output,J] = fsolve(pos_solwcAa,p0,optimset('Display','off'));
+					wcAa_t = [(atan(logwA(1))+pi/2)*Ym/pi exp(logwA(2))];
+				end
+				if(exitflag<=0) %it still didn't work
 					logwA = p0;
-					wcAa_t = [price_path(t,1)  Aa_path(t)];
+					wcAa_t = [price_path_fwd(t-1,1)  Aa_implied_fwd(t-1)];
 				end
-
-		%		if t>2
-					[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
-		%		else
-		%			[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),[Na_undevd_target,(1-Na_undevd_target)*trans_path_back(1,2)]);
-		%		end
+				solpath_fwd(t,:) = logwA;
+				% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
+				[excess_trans,trans_economy] = sol_wcAa_fwd(wcAa_t,Pa,trans_path(t+1,:),trans_path(t-1,1:2));
 				budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
-				if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
-					break;
-				elseif (budget_def < 0)
-					tauH=tau;
-				elseif(budget_def > 0)
-					tauL=tau;
-				end
+			%	if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
+			%		break;
+			%	elseif (budget_def < 0)
+			%		tauH=tau;
+			%	elseif(budget_def > 0)
+			%		tauL=tau;
+			%	end
+			%end
+			if trans_economy(1) >= 1. || exitflag<0;
+				trans_economy = trans_path(t-1,:);
+				bad_periods(t) = 1;
 			end
+			
 			trans_path(t,:) = trans_economy;
 			excess_path(t,:)= excess_trans;
 			price_path_fwd(t,:) = [wcAa_t(1) Pa]; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
@@ -372,6 +459,7 @@ for ci = 1:Ncountry
 		if (sum(resid)<1e-6) || (trans_iter >2 && param_resid< 1e-6)
 			break;
 		end
+		bad_periods(:) = 0;
 
 	end
 
@@ -501,4 +589,4 @@ for ci = 1:Ncountry
 
 
 
-end
+%end

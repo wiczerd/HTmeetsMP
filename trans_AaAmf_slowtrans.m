@@ -10,8 +10,8 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau converged
 
 % load everything else (calibration and such):
-load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf.mat
-
+%load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf.mat
+load trans_AaAmf/trans_space_USA.mat 
 %solution-level parameters
 TT_extra = 200;
 TX = TT_extra;
