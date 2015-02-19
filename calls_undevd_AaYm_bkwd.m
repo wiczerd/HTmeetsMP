@@ -1,4 +1,4 @@
-function calresid_v = calls_undevd_AaYm_bkwd(Aaabar,Pa,w0,Natarget,trans_path)
+function calresid_v = calls_undevd_AaYm_bkwd(Aaabar,Pa,w0,Natarget,trans_path_tp1,u0)
 % the objective for a calibration to target Na, uss and solve for prices
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
@@ -10,7 +10,7 @@ options = optimset('Display','off');
 
 tau=0.0;
 
-pos_solwcPa = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2) instead of utarget*(1-Natarget)
+pos_solwcPa = @(wcPa) sol_wcPa([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path_tp1,u0); % should I use trans_path(1,2) instead of utarget*(1-Natarget)
 [tanw, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(w0*pi/Ym-pi/2) log(Pa)],options);
 
 if(exitflag <0)
@@ -23,7 +23,7 @@ else
 		tau = 0.5*tauH+0.5*tauL;
 
 		[tanw, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(w0*pi/Ym-pi/2) tanw(2)],options);
-		[excess,theeconomy] = sol_wcPa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],trans_path(2,:),trans_path(1,2));
+		[excess,theeconomy] = sol_wcPa([(atan(tanw(1))+pi/2)*Ym/pi exp(tanw(2))],trans_path_tp1,u0);
 		wc = (atan(tanw(1))+pi/2)*Ym/pi ;
 		
 		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}

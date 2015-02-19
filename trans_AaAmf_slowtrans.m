@@ -10,8 +10,8 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau converged
 
 % load everything else (calibration and such):
-%load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf.mat
-load trans_AaAmf/trans_space_USA.mat 
+load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf.mat
+%load trans_AaAmf/trans_space_USA.mat 
 %solution-level parameters
 TT_extra = 200;
 TX = TT_extra;
@@ -243,15 +243,15 @@ end
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
 rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 % this is using the TX period prices: not fully developed
 rev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-percaprev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+percaprev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 % this is using the TT period prices: fully developed
 rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1))];  % ag,man
+percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 
 
 
