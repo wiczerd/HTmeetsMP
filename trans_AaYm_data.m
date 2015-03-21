@@ -2,7 +2,7 @@
 
 % This program computes the transition for Harris-Todaro Meets
 % Mortensen-Pissarides
-
+clear;
 cd ~/Documents/CurrResearch/Devt/Computation
 
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
@@ -305,7 +305,7 @@ ci = 2;
 	trans_path(TT,:)= trans_economy;
 
 	trans_economy	= undevd_economy;
-	trans_path(1,:)= trans_economy;
+	trans_path(cal_period(ci),:)= trans_economy;
 
 	trans_path_back = trans_path;
 	price_path_fwd = zeros(size(price_path));
@@ -445,14 +445,21 @@ ci = 2;
 		Aa_path = param_update*Aa_implied_fwd'+(1-param_update)*Aa_path;
 
 		%re-calibrate the low-development state with just abar
-		Aa = Aa_path(1);
-		Ym = Ym_path(1);
-		Pa = price_path(1,2);
-		w0 = price_path(1,1);
-		be = be_path(1);
+		Aa = Aa_path(cal_period(ci));
+		Ym = Ym_path(cal_period(ci));
+		Pa = price_path(cal_period(ci),2);
+		w0 = price_path(cal_period(ci),1);
+		be = be_path(cal_period(ci));
 		options = optimoptions('fsolve','Jacobian','off');
-		cal_undevd_fn = @(Aaabar) calls_undevd_AaYm_bkwd(Aaabar,Pa,w0,Na_undevd_target,trans_path(cal_period(ci)+1,:),trans_path(cal_period(ci),2));
-		[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,[Pa*1.1 abar*.9],[0 0],[10 Ym]);
+		cal_undevd_fn = @(Aaabar) calls_undevd_AaYm_bkwd(Aaabar,Pa,w0,Na_undevd_target,...
+				trans_path(cal_period(ci)+1,:),trans_path(cal_period(ci),2));
+		[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = ...
+				lsqnonlin(cal_undevd_fn,[Pa abar],[0 0],[10 Ym]);
+		if exitflag_caliter<1 || fval_caliter>1.e-1 %an arbitrary number
+			%try abar at 0.5 instead.
+			[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = ...
+				lsqnonlin(cal_undevd_fn,[Pa 0.5],[0 0],[10 Ym]);
+		end
 		%[x,fval_caliter,resid_caliter,exitflag_caliter,out_caliter,J_caliter] = lsqnonlin(cal_undevd_fn,abar,0,Ym);
 
 		%pos_solwc = @(wc) sol_wc((atan(wc)+pi/2)*Ym/pi,Pa,trans_path(2,:),trans_path(1,2)); % should I use trans_path(1,2)) instead of utarget*(1-Natarget)
@@ -482,14 +489,23 @@ ci = 2;
 
 	%% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
-	rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-	percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
-	rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-	percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
-	% this is using the TT period prices: fully developed
-	rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-	percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
+%	rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+%	percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
+%	rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+%	percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
+%	% this is using the TT period prices: fully developed
+%	rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+%	percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 
+	
+	rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1)-trans_path(:,2)) ];  % ag,man
+	percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2))];  % ag,man
+	rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
+	percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2))];  % ag,man
+	% this is using the TT period prices: fully developed
+	rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
+	percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2) )];  % ag,man
+	
 
 	%%
 	mkdir('trans_AaYm_results',['calAa_' c_name{ci} 'Pa_linYm']);
@@ -561,10 +577,10 @@ ci = 2;
 	y2Y=max(percaprev_pt(:,1));
 	y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));
 	y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
-	set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*100)/100 );
-	set(ax(1),'YLim', round(([0 6]*(y1Y-y10)/6 +y10)*100)/100 );
-	set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*100)/100);
-	set(ax(2),'YLim',round(([0 6]*(y2Y-y20)/6 +y20)*100)/100);
+	set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*1000)/1000 );
+	set(ax(1),'YLim', round(([0 6]*(y1Y-y10)/6 +y10)*1000)/1000 );
+	set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*1000)/1000);
+	set(ax(2),'YLim',round(([0 6]*(y2Y-y20)/6 +y20)*1000)/1000);
 	set(gcf,'color','white');
 	grid on;
 	if (save_plots == 1) 
@@ -636,11 +652,12 @@ ACPt_ci = zeros(TTmax ,Ncountry);
 ACPindic_ci = zeros(TTmax ,Ncountry) == 0;
 ACPtfpratio_ci = zeros(TTmax,Ncountry);
 apg_ci = zeros(TTmax,Ncountry);
+Nafrac_ci = zeros(TTmax,Ncountry);
 
 for ci=1:Ncountry
 	cd(['trans_AaYm_results/calAa_' c_name{ci} 'Pa_linYm'])
-	load(['trans_space_' c_name{ci} '.mat']);
-	percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2))];  % ag,man
+	load(['trans_space_' c_name{ci} '.mat']); %'*_path,c_time_qtr,time_qtr,percaprev_pt'
+	percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2))];  % ag,man
 	
 	indic_data = c_time(:,ci)>0;
 	yr0 = min(c_time(indic_data,ci)); nyr = sum(indic_data);
@@ -655,6 +672,7 @@ for ci=1:Ncountry
 	ACPtfpratio_ci(ACPindic_ci(:,ci),ci)  = Ym_path./Aa_path;
 	
 	apg_ci(ACPindic_ci(:,ci),ci)  = percaprev_pt(:,2)./percaprev_pt(:,1);
+	Nafrac_ci(ACPindic_ci(:,ci),ci)  = (1. - trans_path(:,1) - trans_path(:,2))./trans_path(:,1);
 	
 	if strcmp(c_name{ci},'GER')
 		apg_ci(1,ci) =  apg_ci(2,ci);
@@ -662,33 +680,65 @@ for ci=1:Ncountry
 	
 	cd ~/Documents/CurrResearch/Devt/Computation
 end
-
+ 
 figure(1);
 h=plot(	 ACPt_ci(ACPindic_ci(:,1),1), ACPppath_ci(ACPindic_ci(:,1),1),'r-.' , ACPt_ci(ACPindic_ci(:,1),1), ACPtfpratio_ci(ACPindic_ci(:,1),1),'r'  ...
-	...	,ACPt_ci(ACPindic_ci(:,2),2), ACPppath_ci(ACPindic_ci(:,2),2),'g-.' , ACPt_ci(ACPindic_ci(:,2),2), ACPtfpratio_ci(ACPindic_ci(:,2),2),'g' ...
-		,ACPt_ci(ACPindic_ci(:,3),3), ACPppath_ci(ACPindic_ci(:,3),3),'b-.' , ACPt_ci(ACPindic_ci(:,3),3), ACPtfpratio_ci(ACPindic_ci(:,3),3),'b' ...
-		,ACPt_ci(ACPindic_ci(:,4),4), ACPppath_ci(ACPindic_ci(:,4),4),'k-.' , ACPt_ci(ACPindic_ci(:,4),4), ACPtfpratio_ci(ACPindic_ci(:,4),4),'k' ...
-		);
+	,ACPt_ci(ACPindic_ci(:,2),2), ACPppath_ci(ACPindic_ci(:,2),2),'g-.' , ACPt_ci(ACPindic_ci(:,2),2), ACPtfpratio_ci(ACPindic_ci(:,2),2),'g' ...
+	,ACPt_ci(ACPindic_ci(:,3),3), ACPppath_ci(ACPindic_ci(:,3),3),'b-.' , ACPt_ci(ACPindic_ci(:,3),3), ACPtfpratio_ci(ACPindic_ci(:,3),3),'b' ...
+	,ACPt_ci(ACPindic_ci(:,4),4), ACPppath_ci(ACPindic_ci(:,4),4),'k-.' , ACPt_ci(ACPindic_ci(:,4),4), ACPtfpratio_ci(ACPindic_ci(:,4),4),'k' ...
+	);
 set(h,'LineWidth',2);
 set(gcf,'color','white');
 grid on;
-%legend('location','Northeast','Canada, P','Canada, TFP y_m/A_a','Germany, P','Germany, TFP y_m/A_a','UK, P','UK, TFP y_m/A_a','USA, P', 'USA,TFP y_m/A_a');
-legend('location','Northeast','Canada, P','Canada, TFP y_m/A_a','UK, P','UK, TFP y_m/A_a','USA, P', 'USA,TFP y_m/A_a');
+legend('location','Northeast','Canada, P','Canada, TFP y_m/A_a','Germany, P','Germany, TFP y_m/A_a','UK, P','UK, TFP y_m/A_a','USA, P', 'USA,TFP y_m/A_a');
+%legend('location','Northeast','Canada, P','Canada, TFP y_m/A_a','UK, P','UK, TFP y_m/A_a','USA, P', 'USA,TFP y_m/A_a');
 saveas(gca,'agPrice_reltfp_all','eps2c'); 
 saveas(gca,'agPrice_reltfp_all.png');
-	
-	
+
+ 	
 figure(2)
 
 h=plot(	 ACPt_ci(ACPindic_ci(:,1),1), ACPppath_ci(ACPindic_ci(:,1),1),'r-.' , ACPt_ci(ACPindic_ci(:,1),1), apg_ci(ACPindic_ci(:,1),1),'r'  ...
-	...	,ACPt_ci(ACPindic_ci(:,2),2), ACPppath_ci(ACPindic_ci(:,2),2),'g-.' , ACPt_ci(ACPindic_ci(:,2),2), apg_ci(ACPindic_ci(:,2),2),'g' ...
+		,ACPt_ci(ACPindic_ci(:,2),2), ACPppath_ci(ACPindic_ci(:,2),2),'g-.' , ACPt_ci(ACPindic_ci(:,2),2), apg_ci(ACPindic_ci(:,2),2),'g' ...
 		,ACPt_ci(ACPindic_ci(:,3),3), ACPppath_ci(ACPindic_ci(:,3),3),'b-.' , ACPt_ci(ACPindic_ci(:,3),3), apg_ci(ACPindic_ci(:,3),3),'b' ...
 		,ACPt_ci(ACPindic_ci(:,4),4), ACPppath_ci(ACPindic_ci(:,4),4),'k-.' , ACPt_ci(ACPindic_ci(:,4),4), apg_ci(ACPindic_ci(:,4),4),'k' ...
 		);
 set(h,'LineWidth',2);
 set(gcf,'color','white');
 grid on;
-%legend('location','Northeast','Canada, P','Canada, APG non-ag/ag','Germany, P','Germany, APG non-ag/ag','UK, P','UK, APG non-ag/ag','USA, P', 'USA, APG non-ag/ag');
-legend('location','Northeast','Canada, P','Canada, APG non-ag/ag','UK, P','UK, APG non-ag/ag','USA, P', 'USA, APG non-ag/ag');
+legend('location','Northeast','Canada, P','Canada, APG non-ag/ag','Germany, P','Germany, APG non-ag/ag','UK, P','UK, APG non-ag/ag','USA, P', 'USA, APG non-ag/ag');
+%legend('location','Northeast','Canada, P','Canada, APG non-ag/ag','UK, P','UK, APG non-ag/ag','USA, P', 'USA, APG non-ag/ag');
 	saveas(gca,'agPrice_APG_all','eps2c'); 
 	saveas(gca,'agPrice_APG_all.png');
+
+figure(3); 
+h=plot(	 ACPt_ci(ACPindic_ci(:,1),1), ACPppath_ci(ACPindic_ci(:,1),1),'r-.' , ACPt_ci(ACPindic_ci(:,1),1), Nafrac_ci(ACPindic_ci(:,1),1),'r'  ...
+		,ACPt_ci(ACPindic_ci(:,2),2), ACPppath_ci(ACPindic_ci(:,2),2),'g-.' , ACPt_ci(ACPindic_ci(:,2),2), Nafrac_ci(ACPindic_ci(:,2),2),'g' ...
+		,ACPt_ci(ACPindic_ci(:,3),3), ACPppath_ci(ACPindic_ci(:,3),3),'b-.' , ACPt_ci(ACPindic_ci(:,3),3), Nafrac_ci(ACPindic_ci(:,3),3),'b' ...
+		,ACPt_ci(ACPindic_ci(:,4),4), ACPppath_ci(ACPindic_ci(:,4),4),'k-.' , ACPt_ci(ACPindic_ci(:,4),4), Nafrac_ci(ACPindic_ci(:,4),4),'k' ...
+		);
+set(h,'LineWidth',2);
+set(gcf,'color','white');
+grid on;
+legend('location','Northwest','Canada, P','Canada, LF non-ag/ag','Germany, P','Germany, LF non-ag/ag','UK, P','UK, LF non-ag/ag','USA, P', 'USA, LF non-ag/ag');
+%legend('location','Northeast','Canada, P','Canada, APG non-ag/ag','UK, P','UK, APG non-ag/ag','USA, P', 'USA, APG non-ag/ag');
+	saveas(gca,'agPrice_Nafrac_all','eps2c'); 
+	saveas(gca,'agPrice_Nafrac_all.png');
+	
+	
+
+figure(4)
+
+h=plot(	 ACPt_ci(ACPindic_ci(:,1),1), apg_ci(ACPindic_ci(:,1),1),'r'  ...
+		,ACPt_ci(ACPindic_ci(:,2),2), apg_ci(ACPindic_ci(:,2),2),'g' ...
+		,ACPt_ci(ACPindic_ci(:,3),3), apg_ci(ACPindic_ci(:,3),3),'b' ...
+		,ACPt_ci(ACPindic_ci(:,4),4), apg_ci(ACPindic_ci(:,4),4),'k' ...
+		);
+set(h,'LineWidth',2);
+set(gcf,'color','white');
+grid on;
+legend('location','Northeast','Canada, APG non-ag/ag','Germany, APG non-ag/ag','UK, APG non-ag/ag', 'USA, APG non-ag/ag');
+%legend('location','Northeast','Canada, P','Canada, APG non-ag/ag','UK, P','UK, APG non-ag/ag','USA, P', 'USA, APG non-ag/ag');
+	saveas(gca,'APG_all','eps2c'); 
+	saveas(gca,'APG_all.png');
+

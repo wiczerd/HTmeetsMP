@@ -19,9 +19,8 @@ max_transiter = 41;
 save_plots =1;
 param_update = 0.5;
 Amf_stunted= 0;
-Ym_stunted = 0;
+Ym_stunted = 1;
 Aa_stunted = 0;
-APG_flat = 1;
 
 C2_prodpaths = 0;
 cub_prodpaths = 0;
@@ -87,17 +86,6 @@ else
 	Ym_stunted_path = [Ym_path(1) exp( log(Ym_path(1)) + cumsum(tmp_growth) )];
 	Ym_stunted_path = [Ym_stunted_path linspace(Ym_stunted_path(end),Ym_path(end),TT_extra)];
 
-	tmp_growth = log(Aa_path(2:end) ./ Aa_path(1:end-1));
-	Aa_APG_flat_path = [Aa_path(1) exp( log(Aa_path(1)) + cumsum(tmp_growth) )];
-	Aa_APG_flat_path = [Aa_APG_flat_path linspace(Aa_APG_flat_path(end),Aa_path(end),TT_extra)];
-
-	tmp_growth = log(Amf_path(2:end) ./ Amf_path(1:end-1))*-20.;
-	Amf_APG_flat_path = [Amf_path(1) exp( log(Amf_path(1)) + cumsum(tmp_growth) )];
-	Amf_APG_flat_path = [Amf_APG_flat_path linspace(Amf_APG_flat_path(end),Amf_path(end),TT_extra)];
-
-	tmp_growth = log(Ym_path(2:end) ./ Ym_path(1:end-1));
-	Ym_APG_flat_path = [Ym_path(1) exp( log(Ym_path(1)) + cumsum(tmp_growth) )];
-	Ym_APG_flat_path = [Ym_APG_flat_path linspace(Ym_APG_flat_path(end),Ym_path(end),TT_extra)];
 end
 
 Amf_path = [Amf_path ones(1,TT_extra)*Amf_path(TT)];
@@ -110,11 +98,7 @@ Ym_path = [Ym_path ones(1,TT_extra)*Ym_path(TT)];
 if Amf_stunted==1;	Amf_path=	Amf_stunted_path;	end
 if Aa_stunted== 1;	Aa_path =	Aa_stunted_path;	end
 if Ym_stunted== 1;	Ym_path =	Ym_stunted_path;	end
-if APG_flat == 1
-	Amf_path=	Amf_APG_flat_path;
-	Aa_path=	Aa_APG_flat_path;
-	Ym_path=	Ym_APG_flat_path;
-end
+
 
 % initially put it to p0 or old price path?
 %price_path  = [p0_trans p0_trans(:,TT)*ones(TT_extra)];
@@ -199,7 +183,6 @@ for trans_iter =1:max_transiter
 				tauL=tau;
 			end
 		end
-		tau_path(t) = tau;
 		if trans_economy(1) >= 1. || excess_trans*excess_trans' >1e-4;
 			trans_economy = trans_path_back(t+1,:);
 			bad_periods(t) = 1;
@@ -228,33 +211,30 @@ for trans_iter =1:max_transiter
 				
 		pos_solwcPa = @(wcPa) sol_wcPa_fwd([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))],trans_path(t+1,:),trans_path(t-1,1:2));
 
-		tau = tau_path(t);
+		tauH = 0.05; tauL=0.001;
+		for itertau = 1:100
+			tau = 0.5*tauH+0.5*tauL;
 
-		p0 = solpath_back(t,:); 
-		[logwP, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
-		wcPa_t = [(atan(logwP(1))+pi/2)*Ym/pi exp(logwP(2))];
-		if(exitflag<=0)
-			p0 = solpath_fwd(t-1,:);
+			p0 = solpath_back(t,:); 
 			[logwP, fval,exitflag,output,J] = fsolve(pos_solwcPa,p0,optimset('Display','off'));
 			wcPa_t = [(atan(logwP(1))+pi/2)*Ym/pi exp(logwP(2))];
-		end
-		if(exitflag<=0)
-			logwP = p0;
-			wcPa_t = [price_path(t,1)  price_path(t,2)];
-		end
-		solpath_fwd(t,:) = logwP;
-		
-		% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
-		[excess_trans,trans_economy] = sol_wcPa_fwd(wcPa_t,trans_path(t+1,:),trans_path(t-1,1:2));
+			% theeconomy{:} = {N_a, u, Q, J, Ve, Vu}
+			if(exitflag<=0)
+				logwP = p0;
+				wcPa_t = [price_path(t,1)  price_path(t,2)];
+			end
 
-		budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
-		
-		if trans_economy(1) >= 1. || exitflag<0;
-			trans_economy = trans_path(t-1,:);
-			bad_periods(t) = 1;
+			[excess_trans,trans_economy] = sol_wcPa_fwd(wcPa_t,trans_path(t+1,:),trans_path(t-1,1:2));
+
+			budget_def = be*trans_economy(2) - tau*(1-trans_economy(2)-trans_economy(1));
+			if(abs(budget_def)<1e-6 || (tauH-tauL)<1e-6)
+				break;
+			elseif (budget_def < 0)
+				tauH=tau;
+			elseif(budget_def > 0)
+				tauL=tau;
+			end
 		end
-		
-		
 		trans_path(t,:) = trans_economy;
 		excess_path(t,:)= excess_trans;
 		price_path_fwd(t,:) = [wcPa_t(1) wcPa_t(2)]; % or if need to go slower: wcPa_t*.25 + .75*price_path_back(t,:);
@@ -277,27 +257,17 @@ end
 
 %% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
-% rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-% percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
-% rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-% percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
-% % this is using the TX period prices: not fully developed
-% rev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-% percaprev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
-% % this is using the TT period prices: fully developed
-% rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
-% percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
-% 
-rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1))];  % ag,man
-percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2) )];  % ag,man
-rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1))];  % ag,man
-percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2) )];  % ag,man
+rev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pt = [price_path(:,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
+rev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_p0 = [price_path(1,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 % this is using the TX period prices: not fully developed
-rev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1))];  % ag,man
-percaprev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2) )];  % ag,man
+rev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pTX = [price_path(TT-TX,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
 % this is using the TT period prices: fully developed
-rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'.*(1-trans_path(:,1))];  % ag,man
-percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,2) )];  % ag,man
+rev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^mu Ym_path'];  % ag,man
+percaprev_pTT = [price_path(TT,2).*Aa_path'.*trans_path(:,1).^(mu-1) Ym_path'./(1-trans_path(:,1)-trans_path(:,2) )];  % ag,man
+
 
 
 %%
@@ -319,9 +289,6 @@ elseif (save_plots==1 && Aa_stunted == 1)
 elseif (save_plots==1 && Ym_stunted == 1) 
 	cd trans_AaAmf/calAa_linAmf_haltYm
 	save trans_space_calAa_linAmf_haltYm;	
-elseif (save_plots==1 && Ym_stunted == 1) 
-	cd trans_AaAmf/calAa_APG_flat
-	save trans_space_calAa_APG_flat;	
 end
 
 %
@@ -392,8 +359,8 @@ cd ~/Documents/CurrResearch/Devt/Computation
 	
 load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf;
 	upath_calAa_linYmAmf= upath;
-	apg_calAa_linYmAmf= percaprev_pt(:,2)./percaprev_pt(:,1);
-	apgTT_calAa_linYmAmf= percaprev_pTT(:,2)./percaprev_pTT(:,1);
+	apg_calAa_linYmAmf= percaprev_pt(:,1)./percaprev_pt(:,2);
+	apgTT_calAa_linYmAmf= percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_linYmAmf= log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
 	relgdp_calAa_linYmAmf= (gdp_calAa_linYmAmf-gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_linYmAmf= Aa_path;
@@ -402,8 +369,8 @@ load trans_AaAmf/calAa_linYmAmf/trans_space_calAa_linYmAmf;
 
 load trans_AaAmf/calAa_haltYm_haltAa/trans_space_calAa_haltYm_haltAa;
 	upath_calAa_haltYm_haltAa = upath;
-	apg_calAa_haltYm_haltAa = percaprev_pt(:,2)./percaprev_pt(:,1);
-	apgTT_calAa_haltYm_haltAa = percaprev_pTT(:,2)./percaprev_pTT(:,1);
+	apg_calAa_haltYm_haltAa = percaprev_pt(:,1)./percaprev_pt(:,2);
+	apgTT_calAa_haltYm_haltAa = percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_haltYm_haltAa = log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
 	relgdp_calAa_haltYm_haltAa = (gdp_calAa_haltYm_haltAa-gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_haltYm_haltAa  = Aa_path;
@@ -412,8 +379,8 @@ load trans_AaAmf/calAa_haltYm_haltAa/trans_space_calAa_haltYm_haltAa;
 
 load trans_AaAmf/calAa_linYm_haltAa/trans_space_calAa_linYm_haltAa;
 	upath_calAa_linYm_haltAa = upath;
-	apg_calAa_linYm_haltAa = percaprev_pt(:,2)./percaprev_pt(:,1);
-	apgTT_calAa_linYm_haltAa = percaprev_pTT(:,2)./percaprev_pTT(:,1);
+	apg_calAa_linYm_haltAa = percaprev_pt(:,1)./percaprev_pt(:,2);
+	apgTT_calAa_linYm_haltAa = percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_linYm_haltAa = log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
 	relgdp_calAa_linYm_haltAa = (gdp_calAa_linYm_haltAa - gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_linYm_haltAa = Aa_path;
@@ -422,8 +389,8 @@ load trans_AaAmf/calAa_linYm_haltAa/trans_space_calAa_linYm_haltAa;
 
 load trans_AaAmf/calAa_linAmf_haltYm/trans_space_calAa_linAmf_haltYm;
 	upath_calAa_linAmf_haltYm = upath;
-	apg_calAa_linAmf_haltYm = percaprev_pt(:,2)./percaprev_pt(:,1);
-	apgTT_calAa_linAmf_haltYm = percaprev_pTT(:,2)./percaprev_pTT(:,1);
+	apg_calAa_linAmf_haltYm = percaprev_pt(:,1)./percaprev_pt(:,2);
+	apgTT_calAa_linAmf_haltYm = percaprev_pTT(:,1)./percaprev_pTT(:,2);
 	gdp_calAa_linAmf_haltYm = log( trans_path(:,1).*(Aa_path'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1)).*Ym_path' );
 	relgdp_calAa_linAmf_haltYm = (gdp_calAa_linAmf_haltYm-gdp_calAa_linYmAmf(end));
 	Aa_path_calAa_linAmf_haltYm = Aa_path;
@@ -445,11 +412,8 @@ figure(11);
 plot([1:TO],apg_calAa_linYmAmf(1:TO),'k', [1:TO],apg_calAa_linAmf_haltYm(1:TO),'b', [1:TO], apg_calAa_linYm_haltAa(1:TO),'g',[1:TO], apg_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
 set(gcf,'color','white');
 title('Agricultural Productivity Gap, current prices');
-legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
+legend('Location','NorthWest','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
-hold on;
-plot([1:TO],ones(TO,1),':');
-hold off;
 if (save_plots == 1) saveas(gca,'apgpath_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'apgpath_compare.png'); end
 
@@ -459,9 +423,6 @@ set(gcf,'color','white');
 title('Agricultural Productivity Gap, Devd prices');
 legend('Location','NorthWest','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
-hold on;
-plot([1:TO],ones(TO,1),':');
-hold off;
 if (save_plots == 1) saveas(gca,'apgDevpath_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'apgDevpath_compare.png'); end
 
@@ -491,7 +452,7 @@ figure(14);
 plot(relgdp_calAa_linYmAmf(1:TO),apg_calAa_linYmAmf(1:TO),'k', relgdp_calAa_linAmf_haltYm(1:TO),apg_calAa_linAmf_haltYm(1:TO),'b', relgdp_calAa_linYm_haltAa(1:TO), apg_calAa_linYm_haltAa(1:TO),'g',relgdp_calAa_haltYm_haltAa(1:TO), apg_calAa_haltYm_haltAa(1:TO),'r','LineWidth',2);
 set(gcf,'color','white');
 title('Agricultural Productivity Gap, current prices');xlabel('log GDP, deviation from devd');
-legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
+legend('Location','SouthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
 if (save_plots == 1) saveas(gca,'apgpath_gdp_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'apgpath_gdp_compare.png'); end
@@ -502,9 +463,6 @@ set(gcf,'color','white');
 title('Agricultural Productivity Gap, Devd prices');xlabel('log GDP, deviation from devd');
 legend('Location','NorthEast','Baseline','Slow y_m','Slow A_a','Slow A_a & y_m');
 grid on;
-hold on;
-plot(linspace(-3,0,100),ones(100,1),':');
-hold off;
 if (save_plots == 1) saveas(gca,'apgDevpath_gdp_compare','eps2c'); end
 if (save_plots == 1) saveas(gca,'apgDevpath_gdp_compare.png'); end
 
