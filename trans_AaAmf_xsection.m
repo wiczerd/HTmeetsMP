@@ -43,7 +43,7 @@ Ymfac = ones(Ncountry,1); %change this to be a range
 Aafac = ones(Ncountry,1); %change this to be a range
 Amffac = ones(Ncountry,1); %change this to be a range
 
-Amffac = linspace(-10,10,Ncountry);
+Aafac = linspace(1/Ncountry,Ncountry,Ncountry);
 
 for ci =1:Ncountry
 
@@ -109,8 +109,8 @@ for ci =1:Ncountry
 	%Aa_stunted_path = Aa_stunted_path(1:TT);
 
 	%make this alternate
-	Amf_path_ci=	Amf_stunted_path;
-	%Aa_path_ci =	Aa_stunted_path;
+	%Amf_path_ci=	Amf_stunted_path;
+	Aa_path_ci =	Aa_stunted_path;
 	%Ym_path_ci =	Ym_stunted_path;
 	
 	% initially put it to p0 or old price path?
@@ -295,7 +295,7 @@ for ci =1:Ncountry
 
 	%%
 	cd trans_AaAmf/xsec_AaAmfYm
-	save(['trans_space_' ci '.mat']);
+	save(['trans_space_' num2str(ci) '.mat']);
 
 	cd ~/Documents/CurrResearch/Devt/Computation
 
@@ -307,7 +307,7 @@ u_ci = zeros(TT,Ncountry);
 y_ci = zeros(TT,Ncountry);
 
 for ci =1:Ncountry
-	load(['trans_AaAmf/xsec_AaAmfYm/trans_space_' ci '.mat']);
+	load(['trans_AaAmf/xsec_AaAmfYm/trans_space_' num2str(ci) '.mat']);
 	apg_ci(:,ci)  = percaprev_pt(:,2)./percaprev_pt(:,1);
 	u_ci(:,ci)  = upath;
 	y_ci(:,ci)  = log( trans_path(:,1).*(Aa_path_ci'.*trans_path(:,1).^alpha)+(1. - trans_path(:,1) - trans_path(:,2)).*Ym_path_ci' );
@@ -346,7 +346,7 @@ if (save_plots == 1) saveas(gca,'u_xsecT.png'); end
 figure(4);
 scatter(y_ci(tt,:),u_ci(tt,:),'LineWidth',2);
 set(gcf,'color','white');
-title(['Unemployment Scatter - Perdiod t=' tt]);
+title(['Unemployment Scatter - Perdiod t=' num2str(tt)]);
 grid on;
 if (save_plots == 1) saveas(gca,'u_xsect','eps2c'); end
 if (save_plots == 1) saveas(gca,'u_xsect.png'); end
@@ -378,7 +378,7 @@ if (save_plots == 1) saveas(gca,'apg_xsecT.png'); end
 figure(14);
 scatter(y_ci(tt,:),apg_ci(tt,:),'LineWidth',2);
 set(gcf,'color','white');
-title(['APG Scatter - Perdiod t=' tt]);
+title(['APG Scatter - Perdiod t=' num2str(tt)]);
 grid on;
 if (save_plots == 1) saveas(gca,'apg_xsect','eps2c'); end
 if (save_plots == 1) saveas(gca,'apg_xsect.png'); end
