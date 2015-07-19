@@ -1,14 +1,14 @@
-function [calresid_v] = calls_xsec_AmfAa(AmfAaYm,Natarget,utarget,APGtarget)
+function [calresid_v] = calls_xsec_beAa(beAaYm,Natarget,utarget,APGtarget)
 % the objective for a calibration to target Na, uss and solve for prices
 
-global Aa Ym Amf mu be tau 
+global Aa Ym mu be tau 
 global pfixed_devd Pa_devd
 
-%Aa = (AaAmfYm(1));
-Aa = (AmfAaYm(2));
-Amf = (AmfAaYm(1));
+%Aa = (beAaYm(1));
+Aa = (beAaYm(2));
+be = (beAaYm(1));
 if nargin>3
-	Ym = (AmfAaYm(3));
+	Ym = (beAaYm(3));
 else
 	Ym = 1;
 end
@@ -25,7 +25,7 @@ wcPa_0 = [Ym/2. 1.];
 if(exitflag <0)
 %	[logssp, fval_r,resid_r,exitflag_r,ouput_r,J_r] = lsqnonlin(sol_wcPa_ss,[0.5 1.], [0. 0.], [Ym inf],options);
 %	[excess,theeconomy] = sol_wcPa_ss([(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))]);
-	calresid_v = 10.*ones(length(AmfAaYm),1);
+	calresid_v = 10.*ones(length(beAaYm),1);
 	
 else
 	% loop on tau

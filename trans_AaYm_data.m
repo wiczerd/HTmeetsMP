@@ -12,6 +12,9 @@ save_plots =1; %save the plots?
 data_plots =0; %plot the data?
 param_update = .75;
 
+ind_cal = 0; % calibrate countries individually
+
+
 optsoff = optimset('Display','off');
 
 cbar	= 0;%-0.6; % note this is the inverse because I changed the util function
@@ -29,7 +32,10 @@ alpha	= 0.992;
 be	= 0.4;
 tau	= 0.0;
 
-%import the price sequence from Alvarez-Cuadrado & Poschke:
+
+
+
+%% import the price sequence from Alvarez-Cuadrado & Poschke:
 
 ts_data = dir('*_agprod.csv');
 Ncountry = size(ts_data,1);
@@ -80,7 +86,7 @@ for ci = 1:Ncountry
 	end
 end
 
-% AC-P calibration targets data: 
+%% AC-P calibration targets data: 
 cal_period = ones(Ncountry,1);
 cal_Na0 = ones(Ncountry,1);
 cal_NaTT = ones(Ncountry,1);
@@ -126,8 +132,8 @@ apg_gol(:,2,4) = [0.3054335851 0.2451210583 0.3804705773 0.5510643855 0.71429430
 for ci=1:Ncountry
 	indic_data = c_time(:,ci)>0;
 	if(data_plots ==1)
-		h=plot(c_time(indic_data,ci),c_Pa(indic_data,ci),apg_gol(:,1,ci),apg_gol(:,2,ci));
-		title(['APG,' c_name{ci}],'FontSize',14);legend('Location','SouthWest','P_t','APG');
+		h=plot(c_time(indic_data,ci),c_Pa(indic_data,ci),apg_gol(:,1,ci),1./apg_gol(:,2,ci));
+		title(['APG,' c_name{ci}],'FontSize',14);legend('Location','NorthWest','P_t','APG');
 		set(h,'LineWidth',2);
 		set(gcf,'color','white');
 		grid on;
@@ -137,23 +143,28 @@ for ci=1:Ncountry
 		end
 	end
 end
-% util = @(c,a) (c-cbar).^alpha.*(a-abar).^(1-alpha);
-% 
-% utilc = @(c,a) alpha*((a-abar)./(c-cbar)).^(1-alpha);
-% utila = @(c,a) (1-alpha)*((c-cbar)./(a-abar)).^alpha;
-% 
-% ucua  = @(c,a) alpha/(1-alpha)*((a-abar)./(c-cbar));
-% 
-% indiru = @(i,Pa) alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(i-cbar-Pa*abar) ;
-% 
-% qrt = @(Q) Q.^-eta;
-% prt = @(Q) Q.(1-eta);
+
+% APGs together
+if(data_plots ==1)
+	h=plot(apg_gol(:,1,1),1./apg_gol(:,2,1),apg_gol(:,1,2),1./apg_gol(:,2,2),apg_gol(:,1,3),1./apg_gol(:,2,3),apg_gol(:,1,4),1./apg_gol(:,2,4));
+	axis([1840 1980 0 4]);
+	title('APG Time Series,','FontSize',14);legend('Location','NorthWest','Canada','Germany','UK','US');
+	set(h,'LineWidth',2);
+	set(gcf,'color','white');
+	grid on;
+	if save_plots==1
+		saveas(gca,'../Data/figures/Gol_APGs.eps','eps2c');
+		saveas(gca,'../Data/figures/Gol_APGs.png'); 
+	end
+end
+
+
+
 
  	
 %% calibrate it for country ci
 
-%for ci = 1:Ncountry
-ci = 2;
+for ci = Ncountry:-1:1
 	TT = c_nqtr(ci);
 
 	% initial guesses:
@@ -164,100 +175,121 @@ ci = 2;
 	Ym_devd   = 1.;
 	Amf_devd  = Amf;
 
-	for cal_iter=1:20
+	if (ind_cal ==1) || (ci == 4)
+		for cal_iter=1:20
 
-		%% for developed calibrate abar and Amf so that matches Na_target in ag,
-		% Pa_target as the price of agriculture and u_target unemployment by 
-		% changing Aa, Ym and Amf
+			%% for developed calibrate abar and Amf so that matches Na_target in ag,
+			% Pa_target as the price of agriculture and u_target unemployment by 
+			% changing Aa, Ym and Amf
 
-		% to change the calibration target values change Na_target, u_target
-		Na_devd_target = cal_NaTT(ci);
-		u_devd_target = cal_uTT(ci);
-		Pa_devd_target = mean(c_Pa_qtr(TT-20:TT,ci));
+			% to change the calibration target values change Na_target, u_target
+			Na_devd_target = cal_NaTT(ci);
+			u_devd_target = cal_uTT(ci);
+			Pa_devd_target = c_Pa_qtr(TT,ci);
 
-		Amf_old = Amf;
+			Amf_old = Amf;
 
-		cal_devd_fn = @(AaAmfYm) calls_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
-		[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Aa_devd, Ym_devd, Amf_devd],[0,0,0],[20,20,10],optsoff);
-		if exitflag_cal1<1
-			disp(exitflag_cal1)
-			disp(fval_cal1)
+			cal_devd_fn = @(AaAmfYm) calls_devd_AaYm(AaAmfYm,Na_devd_target,u_devd_target,Pa_devd_target);
+			[x,fval_cal1,resid1,exitflag_cal1,out1] = lsqnonlin(cal_devd_fn,[Aa_devd, Ym_devd, Amf_devd],[0,0,0],[20,20,10],optsoff);
+			if exitflag_cal1<1
+				disp(exitflag_cal1)
+				disp(fval_cal1)
+			end
+
+			Amf = param_update*Amf +(1-param_update)*Amf_old; 
+
+			pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+			[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)],optsoff);
+			wcPa_devd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+			[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_devd);
+			devd_logssp = logssp;
+
+			if exitflag<1
+				disp(exitflag);
+				disp(fval);
+			end
+
+			be_devd = be;
+			Aa_devd = Aa;
+			Ym_devd  = Ym;
+			Amf_devd = Amf;
+
+			%%
+
+			% for developing calibrate it to Na_target in agriculture, Pa_target as 
+			% for the price of agriculture and u_target unemployment by manipulating Aa 
+			% Ym and abar
+
+
+			% this is the initial guess, for below, when we calibrate to the
+			% transition
+			Ym	= 1.0;
+			Ym_undevd = Ym;
+			abar_old = abar;
+
+			% to change the calibration target values change Na_target, u_target,
+			% Pa_target
+			Na_undevd_target = cal_Na0(ci);
+			Pa_undevd_target = c_Pa_qtr(1,ci);
+
+			if cal_period(ci) == 1
+				Na_undevd_target_ss = Na_undevd_target;
+			else
+					% half way between assuming linear extrapolation and
+					% assuming no change
+				Na_undevd_target_ss = (cal_Na0(ci)-(cal_NaTT(ci)-cal_Na0(ci))/(c_nqtr(ci)- cal_period(ci))*cal_period(ci))*0.5 + .5*Na_undevd_target;
+			end
+
+		%	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
+		%	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
+			cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm_fixbe(abarAaYm,Na_undevd_target_ss,Pa_undevd_target);
+			[x,fval_cal2,resid2,exitflag_cal2,out2,lam2, jac2] = lsqnonlin(cal_undevd_fn,[Aa_undevd_ss,abar],[0,0],[10,Ym],optsoff);
+			if exitflag_cal2<1
+				disp(exitflag_cal2)
+				disp(fval_cal2)
+			end
+			abar = abar*param_update + (1-param_update)*abar_old;
+
+			pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
+			[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)],optsoff);
+			wcPa_undevd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
+			[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_undevd);
+
+			if exitflag<1
+				disp(exitflag);
+				disp(fval);
+			end
+
+			undevd_ss_logssp = logssp;
+			Aa_undevd_ss = Aa;
+			Aa_undevd = Aa_undevd_ss;
+			be_undevd_ss = be;
+
+			if abs(abar -abar_old)<1e-3
+				break;
+			end
 		end
-			
-		Amf = param_update*Amf +(1-param_update)*Amf_old; 
-
-		pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)],optsoff);
-		wcPa_devd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-		[excess_devd,devd_economy] = sol_wcPa_ss(wcPa_devd);
-		devd_logssp = logssp;
-
-		if exitflag<1
-			disp(exitflag);
-			disp(fval);
-		end
+	else
+		tau = 0;
+		Pa_devd_target = c_Pa_qtr(TT,ci);
+		logwA0(2) = log(Aa_devd);
+		logwA0(1) = devd_logssp(1); %tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
+		pos_solwcAa = @(wcAa) sol_wcAa_ss([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa_devd_target );
+		[logwA_devd , fval,exitflag,output,J] = fsolve(pos_solwcAa,logwA0,optimset('Display','off')); %#ok<ASGLU>
+		Aa_devd = exp(logwA_devd(2) );
 		
-		be_devd = be;
-		Aa_devd = Aa;
-		Ym_devd  = Ym;
-		Amf_devd = Amf;
 		
-		%%
-
-		% for developing calibrate it to Na_target in agriculture, Pa_target as 
-		% for the price of agriculture and u_target unemployment by manipulating Aa 
-		% Ym and abar
-
-
-		% this is the initial guess, for below, when we calibrate to the
-		% transition
-		Ym	= 1.0;
-		Ym_undevd = Ym;
-		abar_old = abar;
-
-		% to change the calibration target values change Na_target, u_target,
-		% Pa_target
-		Na_undevd_target = cal_Na0(ci);
-		Pa_undevd_target = mean(c_Pa_qtr(1:20,ci));
+		Pa_undevd_target = c_Pa_qtr(1,ci);		
+		logwA0(2) = log(Aa_undevd);
+		logwA0(1) = undevd_ss_logssp(1); %tan( (0.5*price_path(t,1)+ 0.5*wcAa_t(1) )*pi/Ym-pi/2);
+		pos_solwcAa = @(wcAa) sol_wcAa_ss([(atan(wcAa(1))+pi/2)*Ym/pi exp(wcAa(2))],Pa_undevd_target );
+		[logwA_undevd , fval,exitflag,output,J] = fsolve(pos_solwcAa,logwA0,optimset('Display','off'));
 		
-		if cal_period(ci) == 1
-			Na_undevd_target_ss = Na_undevd_target;
-		else
-				% half way between assuming linear extrapolation and
-				% assuming no change
-			Na_undevd_target_ss = (cal_Na0(ci)-(cal_NaTT(ci)-cal_Na0(ci))/(c_nqtr(ci)- cal_period(ci))*cal_period(ci))*0.5 + .5*Na_undevd_target;
-		end
+		Aa_undevd_ss = exp(logwA_undevd(2) );
+		Aa_undevd    = exp(logwA_undevd(2) );
 		
-	%	cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm(abarAaYm,Na_undevd_target,u_undevd_target,Pa_undevd_target);
-	%	[x,fval_cal2,resid2,exitflag_cal2,out2] = lsqnonlin(cal_undevd_fn,[Aa_undevd,be_undevd_ss,abar],[0,0,0],[10,Ym,Ym]);
-		cal_undevd_fn = @(abarAaYm) calls_undevd_AaYm_fixbe(abarAaYm,Na_undevd_target_ss,Pa_undevd_target);
-		[x,fval_cal2,resid2,exitflag_cal2,out2,lam2, jac2] = lsqnonlin(cal_undevd_fn,[Aa_undevd_ss,abar],[0,0],[10,Ym],optsoff);
-		if exitflag_cal2<1
-			disp(exitflag_cal2)
-			disp(fval_cal2)
-		end
-		abar = abar*param_update + (1-param_update)*abar_old;
-		
-		pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
-		[logssp, fval,exitflag,output,J] = fsolve(pos_solwcPa,[tan(.5*pi/Ym-pi/2) log(.5)],optsoff);
-		wcPa_undevd = [(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))];
-		[excess_undevd_ss,undevd_ss_economy] = sol_wcPa_ss(wcPa_undevd);
-
-		if exitflag<1
-			disp(exitflag);
-			disp(fval);
-		end
-		
-		undevd_ss_logssp = logssp;
-		Aa_undevd_ss = Aa;
-		Aa_undevd = Aa_undevd_ss;
-		be_undevd_ss = be;
-
-		if abs(abar -abar_old)<1e-3
-			break;
-		end
 	end
-
+	
 	%As a first guess, set undevd economy to be the undevd_ss_economy, even
 	%though it will not be a steady state when we compute the transition
 
@@ -509,18 +541,25 @@ ci = 2;
 
 	%%
 	mkdir('trans_AaYm_results',['calAa_' c_name{ci} 'Pa_linYm']);
+	
 	cd(['trans_AaYm_results/calAa_' c_name{ci} 'Pa_linYm'])
 
 	save(['trans_space_' c_name{ci} '.mat']);
+
+	load(['trans_space_' c_name{ci} '.mat']);
 
 	%%
 	upath = trans_path(:,2)./(1-trans_path(:,1));
 	upath_back = trans_path_back(:,2)./(1-trans_path_back(:,1));
 
 	mpath = (-trans_path(2:TT,1) + trans_path(1:TT-1,1))./trans_path(1:TT-1,1);
+	yr0 = min(c_time(indic_data,ci)); nyr = sum(indic_data);
+	time_qtr = interp1(c_time(indic_data,ci)-yr0,...
+						c_time(indic_data,ci), 0:0.25:nyr-1);
+	time_qtr = time_qtr(1:end-1);
 	%
 	figure(1);
-	[ax,h1,h2]=plotyy([1:TT],trans_path(:,1),[1:TT],Aa_path);title('Fraction in agriculture','FontSize',14);
+	[ax,h1,h2]=plotyy(time_qtr,trans_path(:,1),time_qtr,Aa_path);title(['Fraction in agriculture and productivity, ' c_name{ci}],'FontSize',14);
 	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','N_a','A_a');
 	set(gcf,'color','white');
 	set(ax(1), 'YLim', [0.0 1.0]);
@@ -547,11 +586,11 @@ ci = 2;
 	end
 
 	figure(3);
-	[ax,h1,h2]=plotyy([1:TT],upath,[1:TT],Ym_path);title('Unemployment rate','FontSize',14);
+	[ax,h1,h2]=plotyy(time_qtr,upath,time_qtr,Ym_path);title(['Unemployment rate and productivity, ' c_name{ci}],'FontSize',14);
 	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','Y_m');
 	set(gcf,'color','white');
-	set(ax(1), 'YLim', [0.05 0.15]);
-	set(ax(1), 'YTick', [0.05:0.025:0.15]);
+	set(ax(1), 'YLim', [0.04 0.15]);
+	set(ax(1), 'YTick', [0.04:0.03:0.16]);
 	set(ax(2), 'YLim', [0.0 10.0]);
 	set(ax(2), 'YTick', [0.0:2.5:10.0]);
 	grid on;
@@ -561,7 +600,7 @@ ci = 2;
 	end
 
 	figure(4);
-	[ax,h1,h2]=plotyy([1:TT],Amf*trans_path(:,3).^(1-eta),[1:TT],Ym_path);title('Job finding rate','FontSize',14);
+	[ax,h1,h2]=plotyy(time_qtr,Amf*trans_path(:,3).^(1-eta),time_qtr,Ym_path);title(['Non-ag job finding rate and productivity, ' c_name{ci}],'FontSize',14);
 	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','Y_m');
 	set(gcf,'color','white');
 	grid on;
@@ -642,7 +681,7 @@ ci = 2;
 	%%
 	cd ~/Documents/CurrResearch/Devt/Computation
 
-%end
+end
 
 
 %% put all of the countries on the same plot:

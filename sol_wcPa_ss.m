@@ -22,7 +22,7 @@ pQ	= Amf*Q^(1-eta);
 % solve for Ve Vu as a linear system
 flowVe	= (1-lambda)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc*(1-tau) -cbar-Pa*abar);
 flowVu	= pQ*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc*(1-tau)-cbar-Pa*abar) ...
-		+ (1-pQ)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(be*wc-cbar-Pa*abar);
+		+ (1-pQ)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*max(be*wc-cbar-Pa*abar,0.);
 VeVucoe	= [(1-lambda)*beta, lambda;...
 	pQ*beta, (1-pQ)*beta];
 VeVucon	= [flowVe;flowVu];

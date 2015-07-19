@@ -1,4 +1,4 @@
-function [excess,theeconomy] = sol_wcAa(wcAa,Pa,theeconomy_tp1,ut)
+function [excess,theeconomy] = sol_wcAa_ss(wcAa,Pa)
 % computes a steady state in the economy
 % if only one output is requested, it gives excess (as in excess demand)
 % if more are requested it outputs:
@@ -10,42 +10,36 @@ function [excess,theeconomy] = sol_wcAa(wcAa,Pa,theeconomy_tp1,ut)
 % theeconomy{6} : Vu
 
 
-global cbar abar beta eta Ym lambda kappa theta Amf mu alpha be
+global cbar abar beta eta Ym lambda kappa tau theta Amf mu alpha be
 
 wc = wcAa(1);
 Aa_hr = wcAa(2);
 
-Jp	= theeconomy_tp1(4);
-Vep	= theeconomy_tp1(5);
-Vup	= theeconomy_tp1(6);
-
-
-J	= (1-lambda)*(Ym-wc + beta*Jp);
+J	= (1-lambda)*(Ym-wc)/(1-beta*(1-lambda));
 Q	= (kappa/(Ym-wc + beta*J)/Amf)^(-1/eta);
 pQ	= Amf*Q^(1-eta);
+
 % solve for Ve Vu as a linear system
-flowVe	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*max(wc-cbar-Pa*abar,0.);
-flowVu	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*max(be*wc-cbar-Pa*abar,0.);
+flowVe	= (1-lambda)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc*(1-tau) -cbar-Pa*abar);
+flowVu	= pQ*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc*(1-tau)-cbar-Pa*abar) ...
+		+ (1-pQ)*alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*max(be*wc-cbar-Pa*abar,0);
+VeVucoe	= [(1-lambda)*beta, lambda;...
+	pQ*beta, (1-pQ)*beta];
+VeVucon	= [flowVe;flowVu];
 
-VeVucoe	= [0, lambda;...
-	0, 0];
-% constant values:
-VeVucon	= [(1-lambda)*flowVe;pQ*flowVe + (1-pQ)*flowVu];
-% continuation values:
-VeVucont =  beta*[(1-lambda)*Vep;pQ*Vep + (1-pQ)*Vup];
+VeVu	= (eye(2)- VeVucoe)\VeVucon;
 
-VeVu	= (eye(2)- VeVucoe)\(VeVucon + VeVucont);
-
+% now that I have Ve, Vu I can solve for the wage from Nash Bargaing
 wc_implied = ( alpha^alpha*(Pa/(1-alpha)).^(alpha-1)*...
-	( (1-theta)*be*wc + (theta-1)*beta*(Vep - Vup) ) ...
-	+ theta*(Ym + beta*Jp) )...
+	( (1-theta)*be*wc + (theta-1)*beta*(VeVu(1) - VeVu(2)) ) ...
+	+ theta*(Ym + beta*J) )...
 	/(theta+alpha^alpha*(Pa/(1-alpha)).^(alpha-1)*(1-theta)); 
 
 excess(1) = wc_implied - wc;
 
 %solve for the ag economy stuff
 
-Na_supplied_orig = ( ( (VeVu(2)-beta*Vup)/(alpha^alpha*(Pa/(1-alpha))^(alpha-1)) + cbar +Pa*abar )...
+Na_supplied_orig = ( ( (VeVu(2)-beta*VeVu(2))/(alpha^alpha*(Pa/(1-alpha))^(alpha-1)) + cbar +Pa*abar )...
 	/(mu*Pa*Aa_hr) )^(1/(mu-1));
 
 Na_supplied = min(Na_supplied_orig,1);
@@ -54,7 +48,7 @@ wR	= mu*Pa*Aa_hr*Na_supplied^(mu-1);
 
 uss	= lambda*(1-Na_supplied)*(1-pQ)/(pQ + lambda*(1-pQ) );
 
-if(ut<0) ut=uss; end
+ut=uss; 
 
 a_u	= (be*wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
 a_e	= (wc - cbar + alpha/(1-alpha)*Pa*abar )/(Pa)*(1-alpha);
