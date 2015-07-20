@@ -17,7 +17,7 @@ pos_solwcPa = @(wcPa) sol_wcPa_ss([(atan(wcPa(1))+pi/2)*Ym/pi exp(wcPa(2))]);
 [excess,theeconomy] = sol_wcPa_ss([(atan(logssp(1))+pi/2)*Ym/pi exp(logssp(2))]);
 
 if(exitflag <0)
-	calresid_v = 10*ones(3,1);
+	calresid_v = 10*ones(2,1);
 else
 	% loop on tau
 	tauH = .1;tauL=0.;

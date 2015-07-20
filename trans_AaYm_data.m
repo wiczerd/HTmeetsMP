@@ -8,11 +8,11 @@ cd ~/Documents/CurrResearch/Devt/Computation
 global cbar abar Aa beta eta Ym lambda kappa theta Amf mu alpha be tau
 
 TT = 150*4;
-save_plots =1; %save the plots?
+save_plots =0; %save the plots?
 data_plots =0; %plot the data?
 param_update = .75;
 
-ind_cal = 0; % calibrate countries individually
+ind_cal = 1; % calibrate countries individually
 
 
 optsoff = optimset('Display','off');
@@ -74,6 +74,7 @@ for ci = 1:Ncountry
 	c_time_qtr(1:c_nqtr(ci),ci) = time_qtr(1:end-1)';
 	
 	if(data_plots ==1)
+		figure(ci+10);
 		h=plot(c_time(indic_data,ci),c_Pa(indic_data,ci) );
 		title(['Relative Price of Agricultural Goods, ' c_name{ci}],'FontSize',14);
 		set(h,'LineWidth',2);
@@ -132,6 +133,7 @@ apg_gol(:,2,4) = [0.3054335851 0.2451210583 0.3804705773 0.5510643855 0.71429430
 for ci=1:Ncountry
 	indic_data = c_time(:,ci)>0;
 	if(data_plots ==1)
+		figure(20);
 		h=plot(c_time(indic_data,ci),c_Pa(indic_data,ci),apg_gol(:,1,ci),1./apg_gol(:,2,ci));
 		title(['APG,' c_name{ci}],'FontSize',14);legend('Location','NorthWest','P_t','APG');
 		set(h,'LineWidth',2);
@@ -146,6 +148,7 @@ end
 
 % APGs together
 if(data_plots ==1)
+	figure(30);
 	h=plot(apg_gol(:,1,1),1./apg_gol(:,2,1),apg_gol(:,1,2),1./apg_gol(:,2,2),apg_gol(:,1,3),1./apg_gol(:,2,3),apg_gol(:,1,4),1./apg_gol(:,2,4));
 	axis([1840 1980 0 4]);
 	title('APG Time Series,','FontSize',14);legend('Location','NorthWest','Canada','Germany','UK','US');
@@ -516,8 +519,9 @@ for ci = Ncountry:-1:1
 
 	end
 
-
-
+	disp('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+	disp(['Computed country ' int2str(ci)]);
+	disp('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
 
 	%% Compute paths for revenue per worker in Ag & Urban at P_t and P_0
 
@@ -540,14 +544,7 @@ for ci = Ncountry:-1:1
 	
 
 	%%
-	mkdir('trans_AaYm_results',['calAa_' c_name{ci} 'Pa_linYm']);
 	
-	cd(['trans_AaYm_results/calAa_' c_name{ci} 'Pa_linYm'])
-
-	save(['trans_space_' c_name{ci} '.mat']);
-
-	load(['trans_space_' c_name{ci} '.mat']);
-
 	%%
 	upath = trans_path(:,2)./(1-trans_path(:,1));
 	upath_back = trans_path_back(:,2)./(1-trans_path_back(:,1));
@@ -558,125 +555,135 @@ for ci = Ncountry:-1:1
 						c_time(indic_data,ci), 0:0.25:nyr-1);
 	time_qtr = time_qtr(1:end-1);
 	%
-	figure(1);
-	[ax,h1,h2]=plotyy(time_qtr,trans_path(:,1),time_qtr,Aa_path);title(['Fraction in agriculture and productivity, ' c_name{ci}],'FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','N_a','A_a');
-	set(gcf,'color','white');
-	set(ax(1), 'YLim', [0.0 1.0]);
-	set(ax(1), 'YTick', [0.0:0.2:1.0]);
-	set(ax(2), 'YLim', [1.0 7.]);
-	set(ax(2), 'YTick', [1.0:1.5:7.]);
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'Natrans','eps2c');
-		saveas(gca,'Natrans.png'); 
+	mkdir('trans_AaYm_results',['calAa_' c_name{ci} 'Pa_linYm']);
+	
+	cd(['trans_AaYm_results/calAa_' c_name{ci} 'Pa_linYm'])
+
+	save(['trans_space_' c_name{ci} '.mat']);
+
+	if data_plots ==1
+
+		load(['trans_space_' c_name{ci} '.mat']);
+		%
+		figure(1);
+		[ax,h1,h2]=plotyy(time_qtr,trans_path(:,1),time_qtr,Aa_path);title(['Fraction in agriculture and productivity, ' c_name{ci}],'FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','N_a','A_a');
+		set(gcf,'color','white');
+		set(ax(1), 'YLim', [0.0 1.0]);
+		set(ax(1), 'YTick', [0.0:0.2:1.0]);
+		set(ax(2), 'YLim', [1.0 7.]);
+		set(ax(2), 'YTick', [1.0:1.5:7.]);
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'Natrans','eps2c');
+			saveas(gca,'Natrans.png'); 
+		end
+
+		figure(2);
+		[ax,h1,h2]=plotyy([2:TT],mpath,[1:TT],Aa_path);title('Rural -> urban rate','FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','m/N_a','A_a');
+		set(gcf,'color','white');
+		%axes(ax(1));axis([-inf inf 0.0 0.001]);
+		set(ax(1), 'YLim', [0.0 0.02]);
+		set(ax(1), 'YTick', [0.0:0.002:0.02]);
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'mtrans','eps2c'); 
+			saveas(gca,'mtrans.png'); 
+		end
+
+		figure(3);
+		[ax,h1,h2]=plotyy(time_qtr,upath,time_qtr,Ym_path);title(['Unemployment rate and productivity, ' c_name{ci}],'FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','Y_m');
+		set(gcf,'color','white');
+		set(ax(1), 'YLim', [0.04 0.15]);
+		set(ax(1), 'YTick', [0.04:0.03:0.16]);
+		set(ax(2), 'YLim', [0.0 10.0]);
+		set(ax(2), 'YTick', [0.0:2.5:10.0]);
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'utrans','eps2c'); 
+			saveas(gca,'utrans.png'); 
+		end
+
+		figure(4);
+		[ax,h1,h2]=plotyy(time_qtr,Amf*trans_path(:,3).^(1-eta),time_qtr,Ym_path);title(['Non-ag job finding rate and productivity, ' c_name{ci}],'FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','Y_m');
+		set(gcf,'color','white');
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'pQtrans','eps2c'); 
+			saveas(gca,'pQtrans.png'); 
+		end
+
+		figure(5);
+		[ax,h1,h2]=plotyy([2:TT],percaprev_pt(2:end,1)./percaprev_pt(2:end,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t','FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','South','P_t y_a/y_m','P_t y_a');
+		y20 = min(percaprev_pt(:,1));
+		y2Y=max(percaprev_pt(:,1));
+		y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));
+		y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
+		set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*1000)/1000 );
+		set(ax(1),'YLim', round(([0 6]*(y1Y-y10)/6 +y10)*1000)/1000 );
+		set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*1000)/1000);
+		set(ax(2),'YLim',round(([0 6]*(y2Y-y20)/6 +y20)*1000)/1000);
+		set(gcf,'color','white');
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'rev_Pt_trans','eps2c'); 
+			saveas(gca,'rev_Pt_trans.png'); 	
+		end
+
+		figure(6);
+		h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0','FontSize',14);
+		set(h,'LineWidth',2);legend('Location','North','P_0 y_a/y_m','P_0 y_a');
+		set(gcf,'color','white');
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'rev_P0_trans','eps2c'); 
+			saveas(gca,'rev_P0_trans.png'); 
+		end
+
+
+		figure(7);
+		h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1));title('Relative Revenue Per Capita, P_T','FontSize',14);
+		set(h,'LineWidth',2);legend('Location','North','P_T y_a/y_m','P_T y_a');
+		set(gcf,'color','white');
+		grid on;
+		if (save_plots == 1) 
+			saveas(gca,'rev_PTT_trans','eps2c'); 
+			saveas(gca,'rev_PTT_trans.png'); 
+		end
+
+		figure(8);
+		[ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good','FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
+		set(gcf,'color','white');
+		grid on;
+		set(ax(1), 'YLim', [0.4 1.2]);
+		set(ax(1), 'YTick', [0.4:0.2:1.2]);
+		set(ax(2), 'YLim', [1.0 10.0]);
+		set(ax(2), 'YTick', [1.0:3*0.75:10.0]);
+		if (save_plots == 1) 
+			saveas(gca,'agPrice','eps2c'); 
+			saveas(gca,'agPrice.png');
+		end
+
+		figure(9);
+		[ax,h1,h2]=plotyy([1:TT],1./price_path(:,2),[1:TT],Ym_path./Aa_path);title('APG  and Rel. Price (a la Alvarez-Cuadrado & Poschke)','FontSize',14);
+		set(h1,'LineWidth',2);set(h2,'LineWidth',2,'color','r');legend('Location','North','1/P_t','y_m/A_a');
+		set(gcf,'color','white');
+		grid on;
+		%set(ax(1), 'YLim', [0.8 1.6]);
+		%set(ax(1), 'YTick', [0.8:0.2:1.6]);
+		%set(ax(2), 'YLim', [0.6 1.4]);
+		%set(ax(2), 'YTick', [0.6:0.2:1.4]);
+		set(ax(2),'ycolor','r') ;
+		if (save_plots == 1) 
+			saveas(gca,'agPrice_APG','eps2c'); 
+			saveas(gca,'agPrice_APG.png');
+		end
 	end
-
-	figure(2);
-	[ax,h1,h2]=plotyy([2:TT],mpath,[1:TT],Aa_path);title('Rural -> urban rate','FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','m/N_a','A_a');
-	set(gcf,'color','white');
-	%axes(ax(1));axis([-inf inf 0.0 0.001]);
-	set(ax(1), 'YLim', [0.0 0.02]);
-	set(ax(1), 'YTick', [0.0:0.002:0.02]);
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'mtrans','eps2c'); 
-		saveas(gca,'mtrans.png'); 
-	end
-
-	figure(3);
-	[ax,h1,h2]=plotyy(time_qtr,upath,time_qtr,Ym_path);title(['Unemployment rate and productivity, ' c_name{ci}],'FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','u','Y_m');
-	set(gcf,'color','white');
-	set(ax(1), 'YLim', [0.04 0.15]);
-	set(ax(1), 'YTick', [0.04:0.03:0.16]);
-	set(ax(2), 'YLim', [0.0 10.0]);
-	set(ax(2), 'YTick', [0.0:2.5:10.0]);
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'utrans','eps2c'); 
-		saveas(gca,'utrans.png'); 
-	end
-
-	figure(4);
-	[ax,h1,h2]=plotyy(time_qtr,Amf*trans_path(:,3).^(1-eta),time_qtr,Ym_path);title(['Non-ag job finding rate and productivity, ' c_name{ci}],'FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','p(Q)','Y_m');
-	set(gcf,'color','white');
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'pQtrans','eps2c'); 
-		saveas(gca,'pQtrans.png'); 
-	end
-
-	figure(5);
-	[ax,h1,h2]=plotyy([2:TT],percaprev_pt(2:end,1)./percaprev_pt(2:end,2) ,[1:TT], percaprev_pt(:,1));title('Relative Revenue Per Capita, P_t','FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','South','P_t y_a/y_m','P_t y_a');
-	y20 = min(percaprev_pt(:,1));
-	y2Y=max(percaprev_pt(:,1));
-	y10 = min(percaprev_pt(:,1)./percaprev_pt(:,2));
-	y1Y=max(percaprev_pt(:,1)./percaprev_pt(:,2));
-	set(ax(1),'YTick',round(([0:6]*(y1Y-y10)/6 +y10)*1000)/1000 );
-	set(ax(1),'YLim', round(([0 6]*(y1Y-y10)/6 +y10)*1000)/1000 );
-	set(ax(2),'YTick',round(([0:6]*(y2Y-y20)/6 +y20)*1000)/1000);
-	set(ax(2),'YLim',round(([0 6]*(y2Y-y20)/6 +y20)*1000)/1000);
-	set(gcf,'color','white');
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'rev_Pt_trans','eps2c'); 
-		saveas(gca,'rev_Pt_trans.png'); 	
-	end
-
-	figure(6);
-	h=plot([1:TT],percaprev_p0(:,1)./percaprev_p0(:,2) ,[1:TT], percaprev_p0(:,1));title('Relative Revenue Per Capita, P_0','FontSize',14);
-	set(h,'LineWidth',2);legend('Location','North','P_0 y_a/y_m','P_0 y_a');
-	set(gcf,'color','white');
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'rev_P0_trans','eps2c'); 
-		saveas(gca,'rev_P0_trans.png'); 
-	end
-
-
-	figure(7);
-	h=plot([1:TT],percaprev_pTT(:,1)./percaprev_pTT(:,2) ,[1:TT], percaprev_pTT(:,1));title('Relative Revenue Per Capita, P_T','FontSize',14);
-	set(h,'LineWidth',2);legend('Location','North','P_T y_a/y_m','P_T y_a');
-	set(gcf,'color','white');
-	grid on;
-	if (save_plots == 1) 
-		saveas(gca,'rev_PTT_trans','eps2c'); 
-		saveas(gca,'rev_PTT_trans.png'); 
-	end
-
-	figure(8);
-	[ax,h1,h2]=plotyy([1:TT],price_path(:,2),[1:TT],Aa_path);title('Relative price of agricultural good','FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2);legend('Location','North','P_t','A_a');
-	set(gcf,'color','white');
-	grid on;
-	set(ax(1), 'YLim', [0.4 1.2]);
-	set(ax(1), 'YTick', [0.4:0.2:1.2]);
-	set(ax(2), 'YLim', [1.0 10.0]);
-	set(ax(2), 'YTick', [1.0:3*0.75:10.0]);
-	if (save_plots == 1) 
-		saveas(gca,'agPrice','eps2c'); 
-		saveas(gca,'agPrice.png');
-	end
-
-	figure(9);
-	[ax,h1,h2]=plotyy([1:TT],1./price_path(:,2),[1:TT],Ym_path./Aa_path);title('APG  and Rel. Price (a la Alvarez-Cuadrado & Poschke)','FontSize',14);
-	set(h1,'LineWidth',2);set(h2,'LineWidth',2,'color','r');legend('Location','North','1/P_t','y_m/A_a');
-	set(gcf,'color','white');
-	grid on;
-	%set(ax(1), 'YLim', [0.8 1.6]);
-	%set(ax(1), 'YTick', [0.8:0.2:1.6]);
-	%set(ax(2), 'YLim', [0.6 1.4]);
-	%set(ax(2), 'YTick', [0.6:0.2:1.4]);
-	set(ax(2),'ycolor','r') ;
-	if (save_plots == 1) 
-		saveas(gca,'agPrice_APG','eps2c'); 
-		saveas(gca,'agPrice_APG.png');
-	end
-
 	
 	%%
 	cd ~/Documents/CurrResearch/Devt/Computation

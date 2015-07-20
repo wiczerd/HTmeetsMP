@@ -24,8 +24,8 @@ J	= (1-lambda)*(Ym-wc + beta*Jp);
 Q	= (kappa/(Ym-wc + beta*J)/Amf)^(-1/eta);
 pQ	= Amf*Q^(1-eta);
 % solve for Ve Vu as a linear system
-flowVe	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*max(wc-cbar-Pa*abar,0.);
-flowVu	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*max(be*wc-cbar-Pa*abar,0.);
+flowVe	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(wc-cbar-Pa*abar);
+flowVu	= alpha^alpha*(Pa/(1-alpha)).^(alpha-1).*(be*wc-cbar-Pa*abar);
 
 VeVucoe	= [0, lambda;...
 	0, 0];
